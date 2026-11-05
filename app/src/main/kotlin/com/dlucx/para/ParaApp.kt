@@ -316,8 +316,8 @@ internal fun ParaApp(
                     Page.Home -> {
                         ParaPanel {
                             ParaBadge("Map available offline", highlighted = true)
-                            Text("Tagum–Davao map pack", style = MaterialTheme.typography.titleLarge)
-                            Text("Search eight bundled stops or place a pin without an internet connection.")
+                            Text("Philippine regional maps", style = MaterialTheme.typography.titleLarge)
+                            Text("Browse all 18 regions. Search towns, transit stops, and landmarks with streets and labels available offline.")
                         }
                         Button(
                             onClick = {
@@ -404,6 +404,17 @@ internal fun ParaApp(
                         }
                         TripSettings(preferences, permissions)
                         ParaPanel {
+                            Text("Background tracking", style = MaterialTheme.typography.titleMedium)
+                            Text(if (permissions.batteryOptimizationsIgnored) "Android battery optimization: exempt"
+                                else "Android battery optimization: system-managed")
+                            Text("Before a ride, open Battery settings, find Para, and allow background activity or choose Unrestricted if available. Names vary by phone.")
+                            Text("On Infinix, also check Power Marathon or Phone Master for app power restrictions. Keep Para allowed to run in the background and test with the screen off.")
+                            Text("Battery settings can help tracking continue, but do not guarantee alarm delivery. Use Test alarm before boarding.")
+                            OutlinedButton(onClick = context::openParaBatterySettings,
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Open battery settings") }
+                            TextButton(onClick = context::openParaAppSettings) { Text("Open Para app settings") }
+                        }
+                        ParaPanel {
                             Text("Alarm chime", style = MaterialTheme.typography.titleMedium)
                             OutlinedButton(
                                 onClick = onTestAlarm,
@@ -412,8 +423,9 @@ internal fun ParaApp(
                         }
                         ParaPanel {
                             ParaBadge("OFFLINE VECTOR PACK")
-                            Text("Tagum–Davao", style = MaterialTheme.typography.titleMedium)
+                            Text("Philippines · 18 regional street packs", style = MaterialTheme.typography.titleMedium)
                             Text("Map and trip data stay on this device.")
+                            MapCredits()
                         }
                     }
                 }
@@ -453,6 +465,29 @@ internal fun ParaApp(
                 dismissButton = { TextButton(onClick = { deleteTrip = null }) { Text("Cancel") } },
             )
         }
+    }
+}
+
+@Composable
+private fun MapCredits() {
+    var open by remember { mutableStateOf(false) }
+    TextButton(onClick = { open = true }) { Text("Map sources and licenses") }
+    if (open) {
+        AlertDialog(
+            onDismissRequest = { open = false },
+            title = { Text("Map sources and licenses") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Streets and landmarks: © OpenStreetMap contributors, ODbL 1.0. Extract supplied by Geofabrik.")
+                    Text("openstreetmap.org/copyright\nopendatacommons.org/licenses/odbl/1-0/")
+                    Text("Place names: GeoNames, CC BY 4.0.\ngeonames.org\ncreativecommons.org/licenses/by/4.0/")
+                    Text("Regional boundaries: NAMRIA / Philippine Statistics Authority via OCHA, CC BY 3.0 IGO. PSGC updates: faeldon/philippines-psgc-shapefiles v1.0.0. Para simplified the boundaries.")
+                    Text("data.humdata.org/dataset/cod-ab-phl\ncreativecommons.org/licenses/by/3.0/igo/")
+                    Text("Map labels: Inter, © The Inter Project Authors, SIL Open Font License 1.1. Maps may omit roads, landmarks, or recent changes. A named town point is not an exact address or transit stop.")
+                }
+            },
+            confirmButton = { TextButton(onClick = { open = false }) { Text("Close") } },
+        )
     }
 }
 

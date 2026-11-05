@@ -1,0 +1,28 @@
+Philippine regional commuter street maps
+
+© OpenStreetMap contributors. Open Database License (ODbL) 1.0.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Source: Geofabrik Philippines OpenStreetMap extract downloaded November 5, 2026.
+https://download.geofabrik.de/asia/philippines.html
+Source PBF SHA-256:
+ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51
+
+Para selected road, railway, river and named commuter-landmark features,
+rounded coordinates to seven decimals, and partitioned features by regional
+ownership. A way crossing a regional border remains whole in its owner pack.
+Rendering all 18 packs joins them on the same map without duplicate ways.
+The archive stores zooms 8–14 with simplified tile geometry at lower zooms.
+Coverage and completeness depend on the source OSM data. These packs are
+not a routing engine, complete address database or authoritative boundary map.
+
+The OSM-derived landmark records in place-search.sqlite are also available
+under ODbL 1.0; GeoNames records retain their separate CC BY 4.0 attribution.
+Reproducible transformations and the tile schema are
+in tools/extract-philippine-streets.py and tools/build-regional-streets.mjs in
+the Para source repository: https://github.com/d-Lucx/Para
+The build guide documents source preparation and independent validation.
+
+Local SDF glyphs derive from the bundled Inter font; see licenses/inter-OFL.txt.
+GeoNames and regional boundaries have separate attribution in regions/NOTICE.txt.

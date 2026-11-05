@@ -1,5 +1,7 @@
 # **Architectural Blueprint for Para: An Air-Gapped, Privacy-Preserving Commuter Proximity Alarm System**
 
+> **Android v1 implementation note (November 5, 2026):** This is the original cross-platform blueprint. Approved v1 decisions override its route-first setup, inertial dead reckoning, adaptive polling, memory-only history, speaker escalation, and iOS scope. See the [architecture conformance review](<Para Architecture Conformance Review.md>) for the source-level comparison, implementation deviations, and remaining gates, and the [acceptance checklist](<Para v1 Acceptance Checklist.md>) for verified evidence. Regional overview packs do not by themselves establish detailed national street coverage or reliable alarm delivery on every device.
+
 Commuter proximity alarms bridge real-time positioning with localized alerting to prevent transit passengers from missing designated stops due to sleep, distraction, or unfamiliarity with a transit network. Operating such an application under strict offline constraints without data transmission introduces intricate systems-level challenges across hardware sensor acquisition, background operating system lifecycles, embedded vector rendering, and device audio routing. The architectural design of the application, designated "Para," requires the total elimination of network egress and telemetry while maintaining high location accuracy, minimal battery consumption, and fail-safe alerting through locked and silenced device states.
 
 ## **1\. Offline GNSS Positioning Mechanics and Signal Acquisition Performance**

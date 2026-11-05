@@ -1,0 +1,20 @@
+Philippine regional overview maps
+
+Regional boundaries: NAMRIA and Philippine Statistics Authority, via the
+OCHA Philippines administrative boundaries (COD-AB) dataset, CC BY 3.0 IGO.
+https://data.humdata.org/dataset/cod-ab-phl
+https://creativecommons.org/licenses/by/3.0/igo/
+PSGC updates and source geometry: faeldon/philippines-psgc-shapefiles v1.0.0.
+https://github.com/faeldon/philippines-psgc-shapefiles/releases/tag/v1.0.0
+Para reprojected and simplified the regional boundaries together and split
+the result into regional assets. These are approximate overview boundaries.
+
+Place coordinates and names: GeoNames, CC BY 4.0.
+https://www.geonames.org/
+https://creativecommons.org/licenses/by/4.0/
+Source: https://download.geonames.org/export/dump/PH.zip
+Para selected populated places and certain transport landmarks, assigned
+them to the simplified regions, and generated an offline search index.
+Coordinates for populated places represent a named point, not an address.
+
+See tagum-davao-map-notice.txt for the separately bundled OSM street detail.

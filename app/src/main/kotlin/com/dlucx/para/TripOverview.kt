@@ -84,10 +84,10 @@ internal fun TripOverview(
             }
             Text("Recorded path", style = MaterialTheme.typography.titleLarge)
             CorridorMap(
-                selectedPoint = null,
+                selectedPoint = CorridorPoint(trip.destination.latitude, trip.destination.longitude),
                 approachRadiusMeters = 0,
                 arrivalRadiusMeters = 0,
-                onPointSelected = {},
+                onPointSelected = { _, _ -> },
                 onOutsideCoverage = {},
                 modifier = Modifier.fillMaxWidth().height(300.dp),
                 recordedSegments = trip.segments,

@@ -6,15 +6,15 @@ Use the current debug APK and your Infinix X6852. Record the phone model, Androi
 
 1. Install the APK. For the first-launch check, use a fresh install on a spare device or Android profile so you can keep your current saved destinations.
 2. Enable airplane mode and confirm Wi-Fi is off. Open Para, then tap **Set destination**.
-3. Wait for the MapLibre map. Check that roads, place labels, the dashed boundary, and OpenStreetMap attribution are visible. Search for **Tagum**, select the terminal, and confirm the destination and both rings appear.
-4. Drop a pin inside the outlined coverage area. Tap outside the outline and confirm Para explains the boundary and keeps the last valid destination.
+3. Wait for the nationwide MapLibre overview. First use prepares local street packs and the search index; measure the wait and available storage. Open **Browse Philippine regions**, pick a region, and pan across a shared border. Search for **Manila** and **Cebu City** and check that each result shows its region and centers the map on the named point. Check real streets and local font labels while still offline; zoom in for smaller landmarks.
+4. Search for **Cebu South Bus Terminal** or another named terminal and select the result in the intended locality. Then search **Tagum**, select the pilot terminal, and confirm roads and both rings appear. Tap a named map label to select its point, or tap land for a custom pin. Tap beyond the bundled map areas and confirm Para explains the boundary and keeps the last valid destination. A town-center result is not an exact address or stop. Record missing source roads/landmarks separately.
 5. With TalkBack on, open **Enter destination coordinates**. Enter latitude `7.46` and longitude `125.80`, activate **Use coordinates**, and check that the custom destination is selected. Repeat with an outside coordinate and check that TalkBack announces the validation message.
 
 Pass when the map and stop search work on first launch with no connection and the boundary rejects the outside tap. Note any areas with missing road detail separately.
 
 ## 2. Background tracking and notification
 
-1. Outdoors, pick a destination beyond the arrival ring. Set a one-minute backup timer for a stationary test. Tap **Start trip**, grant precise location while using the app, and allow notifications.
+1. In **Settings → Background tracking**, review the battery optimization status and open the battery settings link. Find Para and review its background restrictions; on Infinix also check the vendor power manager. Return to Para and confirm the status refreshes. Outdoors, pick a destination beyond the arrival ring. Set a one-minute backup timer for a stationary test. Tap **Start trip**, grant precise location while using the app, and allow notifications.
 2. Press Home. Open the notification shade and check for the ongoing Para notification. With a usable GPS fix and the phone unlocked, check the destination and remaining distance.
 3. Tap **View trip** and confirm the same session and elapsed timer return. Open the notification again, tap **End trip**, and cancel the confirmation. Tracking should continue.
 4. Lock the phone before the timer expires. Leave the display off until the minute passes. Check whether the backup alarm sounds, then unlock and confirm **Arrival not confirmed** appears. Tap **Keep tracking** and confirm the alarm stops while the trip continues.
@@ -25,7 +25,7 @@ Pass when the trip survives both Home and screen-off, the notification actions b
 ## 3. Lock screen, arrival, and sound
 
 1. In **Settings**, check precise location, notifications, and full-screen alerts. Temporarily turn off one notification setting, prepare a trip, then tap **Start trip**. Confirm Para names the blocked setting and opens the matching Android settings page. Fix it, return, and check that the destination, radii, and backup timer are still present. Repeat with the alarm channel or full-screen access as applicable. Leave **Show trip details on lock screen** off. Use **Test alarm** to set a comfortable alarm volume before starting.
-2. Start outside both rings, lock the phone, and approach the destination. Listen for the approach chime, then the arrival alarm. Check whether Android shows the full-screen arrival screen or the notification and whether you can dismiss it. Confirm that the destination and distance are hidden on the lock screen.
+2. Start outside both rings, lock the phone, and approach the destination. Check for the short approach vibration/chime, then repeating arrival vibration/audio. Check whether Android shows the full-screen arrival screen or the notification and whether you can dismiss it. Verify sound and vibration stop after dismissal, including after replacing a backup alert with arrival. Confirm that the destination and distance are hidden on the lock screen.
 3. Repeat with lock-screen details enabled and record what appears. Restore your preferred setting after the test.
 4. Repeat the arrival check in silent mode and with headphones. Record where the sound plays and whether the lock-screen screen or notification appears. Test both the thumb slide and the accessible **End trip** button with confirmation.
 5. For alert priority, let the backup timer expire first. With the backup still active, enter the arrival zone and confirm the arrival alert replaces it. For first-fix arrival, start a separate trip while already inside the arrival ring and wait for GPS.

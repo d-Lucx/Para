@@ -26,6 +26,9 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.widget.Toast
 import androidx.annotation.RawRes
 import androidx.core.content.ContextCompat
@@ -38,6 +41,10 @@ internal class TripService : Service() {
     private val locations by lazy { getSystemService(LocationManager::class.java) }
     private val notifications by lazy { getSystemService(NotificationManager::class.java) }
     private val power by lazy { getSystemService(PowerManager::class.java) }
+    private val vibrator: Vibrator by lazy {
+        if (Build.VERSION.SDK_INT >= 31) getSystemService(VibratorManager::class.java).defaultVibrator
+        else @Suppress("DEPRECATION") (getSystemService(VIBRATOR_SERVICE) as Vibrator)
+    }
     private val keyguard by lazy { getSystemService(KeyguardManager::class.java) }
     private val settings by lazy { getSharedPreferences("para_settings", MODE_PRIVATE) }
     private val viewTrip by lazy { activityPendingIntent(ACTION_VIEW_TRIP, 1) }
@@ -240,6 +247,15 @@ internal class TripService : Service() {
 
     private fun playSound(@RawRes resource: Int, loop: Boolean) {
         releasePlayer()
+        // The service owns haptics, so replacing/dismissing an alert cancels them too.
+        runCatching {
+            if (vibrator.hasVibrator()) {
+                val effect = if (loop) VibrationEffect.createWaveform(longArrayOf(0, 500, 500), 0)
+                else VibrationEffect.createOneShot(120, VibrationEffect.DEFAULT_AMPLITUDE)
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(effect, AlarmAudio)
+            }
+        }
         try {
             val next = MediaPlayer.create(
                 this,
@@ -252,7 +268,11 @@ internal class TripService : Service() {
             if (loop) next.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK)
             next.setOnCompletionListener { if (it === player) releasePlayer() }
             next.setOnErrorListener { failed, _, _ ->
-                if (failed === player) releasePlayer()
+                if (failed === player) {
+                    failed.release()
+                    player = null
+                    if (!loop) vibrator.cancel()
+                }
                 true
             }
             next.start()
@@ -264,6 +284,7 @@ internal class TripService : Service() {
     private fun releasePlayer() {
         player?.release()
         player = null
+        vibrator.cancel()
     }
 
     private fun releaseBackupWakeLock() {
@@ -381,7 +402,7 @@ internal class TripService : Service() {
             arrivalMeters = getIntExtra(ArrivalExtra, 0),
             backupMinutes = getIntExtra(BackupExtra, 0).takeUnless { it == 0 },
         )
-        return draft.takeIf { it.isValidTrip() }
+        return draft.takeIf { it.isValidTrip(this@TripService) }
     }
 
     companion object {
@@ -411,7 +432,7 @@ internal class TripService : Service() {
 
         fun start(context: Context, destination: DestinationDraft): Boolean {
             if (state.value != null) return false
-            if (!destination.isValidTrip()) {
+            if (!destination.isValidTrip(context)) {
                 val message = if (destination.backupMinutes?.let { it !in 1..MaxBackupMinutes } == true) {
                     R.string.trip_backup_invalid
                 } else {
@@ -448,8 +469,8 @@ internal class TripService : Service() {
             }
         }
 
-        private fun DestinationDraft.isValidTrip(): Boolean =
-            name.isNotBlank() && CorridorPoint(latitude, longitude).isInsideCorridorCoverage() &&
+        private fun DestinationDraft.isValidTrip(context: Context): Boolean =
+            name.isNotBlank() && PhilippineMaps.load(context).covers(CorridorPoint(latitude, longitude)) &&
                 approachMeters > arrivalMeters && arrivalMeters > 0 &&
                 (backupMinutes == null || backupMinutes in 1..MaxBackupMinutes)
     }

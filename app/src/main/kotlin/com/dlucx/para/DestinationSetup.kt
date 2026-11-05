@@ -2,6 +2,7 @@ package com.dlucx.para
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,6 +43,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal data class DestinationDraft(
     val name: String,
@@ -59,8 +63,18 @@ internal fun DestinationSetup(
     onTestAlarm: () -> Unit,
     onStartTrip: (DestinationDraft) -> Unit,
 ) {
-    val assets = LocalContext.current.assets
-    val catalog = remember(assets) { StopCatalog.load(assets) }
+    val mapData by rememberOfflineMapData()
+    val loaded = mapData?.getOrNull()
+    if (loaded == null) {
+        BackHandler(onBack = onBack)
+        Scaffold(topBar = { ParaHeader("Destination setup", onBack = onBack) }) { insets ->
+            Box(Modifier.fillMaxSize().padding(insets), contentAlignment = Alignment.Center) {
+                Text(if (mapData == null) "Opening offline maps…" else "Offline maps unavailable. Reopen destination setup to retry.")
+            }
+        }
+        return
+    }
+    val (catalog, maps) = loaded
     val focus = LocalFocusManager.current
     var query by remember { mutableStateOf("") }
     var point by remember(initialDestination) {
@@ -80,25 +94,27 @@ internal fun DestinationSetup(
         mutableStateOf(initialDestination?.backupMinutes?.toString().orEmpty())
     }
     var outsideCoverage by remember { mutableStateOf(false) }
+    var region by remember { mutableStateOf<MapRegion?>(null) }
+    var regionsOpen by remember { mutableStateOf(false) }
+    var focusSelection by remember(initialDestination) { mutableStateOf(initialDestination != null) }
 
-    val selectedPoint = point?.takeIf { it.isInsideCorridorCoverage() }
+    val selectedPoint = remember(point, maps) { point?.takeIf(maps::covers) }
+    val selectedRegion = remember(selectedPoint, maps) { selectedPoint?.let(maps::regionAt) }
     val approachMeters = approach.toIntOrNull()?.takeIf { it > 0 }
     val arrivalMeters = arrival.toIntOrNull()?.takeIf { it > 0 }
     val orderedRings = approachMeters != null && arrivalMeters != null && approachMeters > arrivalMeters
     val backup = backupMinutes.toIntOrNull()?.takeIf { it in 1..MaxBackupMinutes }
-    val results = remember(catalog, query) {
-        if (query.isBlank()) {
-            emptyList()
-        } else {
-            catalog.search(query).filter { stop ->
-                CorridorPoint(stop.latitude, stop.longitude).isInsideCorridorCoverage()
-            }.take(6)
+    val results by produceState(emptyList<TransitStop>(), catalog, query) {
+        value = if (query.isBlank()) emptyList() else withContext(Dispatchers.Default) {
+            catalog.search(query).take(6)
         }
     }
 
-    fun selectPoint(position: CorridorPoint, label: String) {
+    fun selectPoint(position: CorridorPoint, label: String, centerMap: Boolean = false) {
         point = position
         name = label
+        focusSelection = centerMap
+        if (centerMap) region = maps.regionAt(position)
         outsideCoverage = false
         query = ""
         focus.clearFocus()
@@ -153,24 +169,24 @@ internal fun DestinationSetup(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it.take(128) },
-                label = { Text("Search offline stops") },
+                label = { Text("Search places or stops") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
             )
             OutlinedButton(
-                onClick = { focus.clearFocus(); coordinatesOpen = true },
+                onClick = { focus.clearFocus(); regionsOpen = true },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) { Text("Enter destination coordinates") }
+            ) { Text(region?.let { "Browse regions · ${it.name}" } ?: "Browse Philippine regions") }
             if (query.isNotBlank()) {
                 if (results.isEmpty()) {
-                    Text("No matching stops. You can still drop a pin on the map.")
+                    Text("No matching places. Try the town name or place a custom pin.")
                 }
                 results.forEach { stop ->
                     OutlinedButton(
                         onClick = {
-                            selectPoint(CorridorPoint(stop.latitude, stop.longitude), stop.name)
+                            selectPoint(CorridorPoint(stop.latitude, stop.longitude), stop.name, centerMap = true)
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -182,24 +198,19 @@ internal fun DestinationSetup(
                 }
                 if (results.isNotEmpty()) {
                     Text(
-                        "Stop data © OpenStreetMap contributors · ODbL",
+                        "Place data: GeoNames and OpenStreetMap",
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
-            }
-            ParaPanel {
-                ParaBadge("ARRIVAL TARGET", highlighted = true)
-                Text(
-                    if (selectedPoint == null) "Choose a destination" else name,
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Text("Search offline stops or tap inside the Tagum–Davao boundary.")
             }
             CorridorMap(
                 selectedPoint = selectedPoint,
                 approachRadiusMeters = if (orderedRings) approachMeters else 0,
                 arrivalRadiusMeters = if (orderedRings) arrivalMeters else 0,
-                onPointSelected = { selectPoint(it, "Dropped pin") },
+                onPointSelected = { position, label ->
+                    val nearby = if (label == null) catalog.nearby(position) else null
+                    selectPoint(position, label ?: nearby?.let { "Pin near ${it.name}" } ?: "Custom pin")
+                },
                 onOutsideCoverage = { outsideCoverage = true },
                 onApproachRadiusChanged = { meters ->
                     if (meters > (arrivalMeters ?: 0)) approach = meters.toString()
@@ -208,13 +219,34 @@ internal fun DestinationSetup(
                     if (meters > 0 && meters < (approachMeters ?: 0)) arrival = meters.toString()
                 },
                 modifier = Modifier.fillMaxWidth().height(360.dp),
+                region = region,
+                focusSelection = focusSelection,
             )
+            ParaPanel {
+                ParaBadge("ARRIVAL TARGET", highlighted = true)
+                Text(
+                    if (selectedPoint == null) "Choose a destination" else name,
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                if (selectedPoint == null) {
+                    Text("Search for a town, terminal, airport, or port. Tap a map label to use that named point, or tap the map for a custom pin.")
+                } else {
+                    selectedRegion?.let { Text(it.name) }
+                    Text(
+                        "Offline streets and landmarks. Check the pin before starting.",
+                    )
+                }
+            }
+            OutlinedButton(
+                onClick = { focus.clearFocus(); coordinatesOpen = true },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) { Text("Enter destination coordinates") }
             ParaPanel {
                 Text("The first usable GPS fix can trigger the arrival alarm immediately if you are already inside the arrival zone.")
             }
             if (outsideCoverage) {
                 Text(
-                    "This point is outside offline coverage. Choose a destination inside the boundary.",
+                    "This point is outside the bundled map areas. Choose a named place or a point inside a region.",
                     color = MaterialTheme.colorScheme.error,
                 )
             }
@@ -272,17 +304,33 @@ internal fun DestinationSetup(
     }
     if (coordinatesOpen) {
         CoordinateDialog(
+            maps = maps,
             onDismiss = { coordinatesOpen = false },
             onSelect = {
                 coordinatesOpen = false
-                selectPoint(it, "Custom destination")
+                selectPoint(it, "Custom destination", centerMap = true)
             },
+        )
+    }
+    if (regionsOpen) {
+        AlertDialog(
+            onDismissRequest = { regionsOpen = false },
+            title = { Text("Bundled Philippine regions") },
+            text = {
+                Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState())) {
+                    TextButton(onClick = { region = null; regionsOpen = false }) { Text("All Philippines") }
+                    maps.regions.forEach { item ->
+                        TextButton(onClick = { region = item; regionsOpen = false }) { Text(item.name) }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { regionsOpen = false }) { Text("Close") } },
         )
     }
 }
 
 @Composable
-private fun CoordinateDialog(onDismiss: () -> Unit, onSelect: (CorridorPoint) -> Unit) {
+private fun CoordinateDialog(maps: PhilippineMaps, onDismiss: () -> Unit, onSelect: (CorridorPoint) -> Unit) {
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
@@ -292,7 +340,7 @@ private fun CoordinateDialog(onDismiss: () -> Unit, onSelect: (CorridorPoint) ->
         title = { Text("Custom destination") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Enter latitude and longitude in decimal degrees within the Tagum–Davao map area.")
+                Text("Enter latitude and longitude in decimal degrees within a bundled Philippine map area.")
                 OutlinedTextField(
                     latitude, { latitude = it.take(32); error = null },
                     label = { Text("Latitude, for example 7.46") }, singleLine = true,
@@ -314,8 +362,8 @@ private fun CoordinateDialog(onDismiss: () -> Unit, onSelect: (CorridorPoint) ->
                     error = "Enter valid decimal numbers for both coordinates."
                 } else {
                     val point = CorridorPoint(lat, lon)
-                    if (point.isInsideCorridorCoverage()) onSelect(point)
-                    else error = "These coordinates are outside the Tagum–Davao map area."
+                    if (maps.covers(point)) onSelect(point)
+                    else error = "These coordinates are outside the bundled map areas."
                 }
             }) { Text("Use coordinates") }
         },

@@ -9,6 +9,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,6 +32,7 @@ internal data class TripPermissions(
     val preciseLocation: Boolean,
     val notifications: Boolean,
     val lockScreenAlerts: Boolean,
+    val batteryOptimizationsIgnored: Boolean = false,
 )
 
 internal fun Context.readTripPermissions(): TripPermissions {
@@ -44,6 +46,7 @@ internal fun Context.readTripPermissions(): TripPermissions {
             trackingChannel?.importance != NotificationManager.IMPORTANCE_NONE,
         lockScreenAlerts = (Build.VERSION.SDK_INT < 34 || manager.canUseFullScreenIntent()) &&
             (alarmChannel == null || alarmChannel.importance >= NotificationManager.IMPORTANCE_HIGH),
+        batteryOptimizationsIgnored = getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName),
     )
 }
 
@@ -53,6 +56,14 @@ internal fun Context.openParaAppSettings() {
 
 internal fun Context.openParaNotificationSettings() {
     startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+}
+
+internal fun Context.openParaBatterySettings() {
+    try {
+        startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+    } catch (_: ActivityNotFoundException) {
+        openParaAppSettings()
+    }
 }
 
 internal fun Context.openParaLockScreenSettings() {
