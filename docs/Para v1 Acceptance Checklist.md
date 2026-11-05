@@ -69,3 +69,16 @@ Use the [Para v1 device verification guide](<Para Device Verification Guide.md>)
 Architecture comparison: see [Para Architecture Conformance Review.md](<Para Architecture Conformance Review.md>). FTS4 replaces the blueprint's FTS5 for Android bundled-SQLite compatibility; private data uses Keystore AES-GCM files rather than SQLCipher/Room. Typo tolerance and GPS-distance search ranking are not implemented. Approved v1 changes and open device gates are distinguished in the review.
 
 Dead reckoning, speed-scaled zones, automatic speaker escalation, and iOS are deferred.
+
+## 6. Approved map improvement phase (November 5, 2026)
+
+Scope and Organic Maps references are recorded in the [map improvement plan](<Para Map Improvement Plan.md>). These are approved additions, not completed implementation or physical verification.
+
+- [x] Record the map review decisions and collect project guides in `docs/`, with a root README and documentation index.
+- [ ] Confirm richer pilot map and landmark details designs while retaining the approved Para interface and alarm rings.
+- [ ] Add Tagum–Davao building footprints, parks, water areas, walking paths and improved road hierarchy. Keep all regional maps bundled.
+- [ ] Add landmark details and source-backed entrance selection. If no entrance is mapped, ask the rider to confirm/adjust the landmark pin; do not automatically snap to a road.
+- [ ] Improve overview start/end markers and GPS-gap explanations, preserving raw samples, visible gaps and Recorded distance.
+- [ ] Measure storage, first-use/warm map readiness, rendering, memory and battery effects; verify offline operation, accessibility and unchanged GPS/alarm behavior on physical devices.
+
+Route previews, turn-by-turn navigation, downloadable maps, typo-tolerant search, category browsing and track export require later decisions.
