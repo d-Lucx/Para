@@ -23,6 +23,11 @@ class OfflineMapStyleTest {
         val sources = style.getAsJsonObject("sources").keySet()
         layers.filter { it.has("source") }.forEach { assertTrue("Unknown source on ${it.get("id")}", it.get("source").asString in sources) }
         assertTrue("Map must remain local", style.get("glyphs").asString.startsWith("asset://"))
+        for (id in listOf("national-labels", "pilot-stop-labels")) {
+            val layout = layers.single { it.get("id").asString == id }.getAsJsonObject("layout")
+            assertTrue("Catalog labels must render without per-name images", !layout.has("icon-image"))
+            assertEquals("Inter-Regular", layout.getAsJsonArray("text-font")[0].asString)
+        }
         sources.forEach { name ->
             val source = style.getAsJsonObject("sources").getAsJsonObject(name)
             if (source.has("url")) assertTrue(source.get("url").asString.startsWith("pmtiles://file:///"))

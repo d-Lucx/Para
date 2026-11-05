@@ -74,8 +74,8 @@ internal fun styleJson(
         circle("arrival-handle", arrival, 4),
         """{"id":"places","type":"symbol","source":"corridor","source-layer":"places",
             "layout":{"icon-image":["get","name"],"icon-size":0.65,"icon-anchor":"bottom-left"}}""",
-        namedLayer("national", false, 6.5, primary),
-        namedLayer("pilot-stop", true, 9.0, primary),
+        namedLayer("national", false, 6.5, primary, background),
+        namedLayer("pilot-stop", true, 9.0, primary, background),
     )
     val streetSources = streetPacks.joinToString(",") { """"streets-${it.id}":{"type":"vector","url":"${it.url}"}""" }
     return """{"version":8,"glyphs":"asset://glyphs/{fontstack}/{range}.pbf","sources":{
@@ -90,10 +90,11 @@ internal fun styleJson(
         },"layers":[""" + layers.joinToString(",") + "]}"
 }
 
-private fun namedLayer(id: String, pilot: Boolean, minZoom: Double, color: String) =
+private fun namedLayer(id: String, pilot: Boolean, minZoom: Double, color: String, halo: String) =
     """{"id":"$id-points","type":"circle","source":"named-places","minzoom":$minZoom,
         "filter":["==","pilot",$pilot],"paint":{"circle-radius":4,"circle-color":"$color"}},
         {"id":"$id-labels","type":"symbol","source":"named-places","minzoom":$minZoom,
         "filter":["==","pilot",$pilot],"layout":{
-            "icon-image":["concat","place:",["get","name"]],"icon-size":0.65,
-            "icon-anchor":"bottom-left","icon-offset":[5,-4]}}"""
+            "text-field":["get","name"],"text-font":["Inter-Regular"],"text-size":12,
+            "text-anchor":"bottom-left","text-offset":[0.4,-0.3]},
+            "paint":{"text-color":"$color","text-halo-color":"$halo","text-halo-width":1.5}}"""

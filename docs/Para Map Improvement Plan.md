@@ -72,6 +72,21 @@ Profile the current implementation and the richer pilot maps on the same Infinix
 
 Evaluate restricting expensive detail by zoom and viewport, caching unchanged overlays, and reducing unnecessary source/layer work only after profiling identifies the cost. Regional viewport loading requires buffers and cross-border ownership bounds; a road can be owned by a neighboring pack. Do not change GPS sampling or drop cross-border geometry as a rendering optimization. Set numeric performance budgets after baseline capture, and record before/after results here.
 
+#### Catalog label rendering
+
+Each map opening previously created a bitmap for each of the 412 distinct catalog names. The nationwide and pilot-stop layers now draw names with the bundled Inter glyphs and a theme-colored halo. The bundled catalog names use ASCII, ñ and the en dash. All three are covered by the local glyph ranges. See the [MapLibre symbol layer reference](https://maplibre.org/maplibre-style-spec/layers/#text-field).
+
+The Infinix X6852 ran both debug builds with existing map data, airplane mode enabled and Wi-Fi disabled. Each run started with a force-stopped app. We opened the Polyclinic Davao confirmation map three times and sampled app PSS using `adb shell dumpsys meminfo com.dlucx.para` after a five-second settle and an accessibility dump. The debug APK measured 235,803,409 bytes for each build. The optimized unsigned release bundle measured 192,797,154 bytes.
+
+| Build | PSS samples (KiB) | Median (KiB) |
+| --- | --- | ---: |
+| Baseline `d240a86` | 235,938 / 255,216 / 255,142 | 255,142 |
+| Glyph labels | 191,451 / 246,415 / 248,499 | 246,415 |
+
+Median PSS was 8,727 KiB lower, about 3.4%. The ranges overlap. Keep first-copy time, map-ready time, frame timing, search latency, low-storage recovery, Play download size and the second-device and ride measurements open.
+
+On the optimized build, tapping the rendered Manila label opened destination confirmation and the map displayed the ñ in Las Piñas. Both checks ran offline. The Infinix is running the optimized APK and its original connectivity settings were restored.
+
 ## Acceptance gates
 
 - [x] Confirm pilot map/landmark-sheet designs against approved Para styling before production UI changes. User selected “Approve and implement.”

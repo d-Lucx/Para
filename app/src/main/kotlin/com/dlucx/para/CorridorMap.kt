@@ -271,9 +271,6 @@ internal fun CorridorMap(
                     val label = labels.getString(index)
                     loaded.addImage(label, labelBitmap(label, textColor, colors.surface.toArgb()))
                 }
-                places.map { it.name }.distinct().forEach { label ->
-                    loaded.addImage("place:$label", labelBitmap(label, textColor, colors.surface.toArgb()))
-                }
                 loaded.getSourceAs<GeoJsonSource>("regions")?.setGeoJson(regionalMaps.boundaries)
                 val regionNames = regionalMaps.regions.map { item ->
                     loaded.addImage("region:${item.shortName}", labelBitmap(item.shortName, textColor, colors.surface.toArgb()))
