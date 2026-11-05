@@ -16,6 +16,8 @@ Alarm follow-up (November 5, 2026): Awake backup sound/vibration and Keep tracki
 
 The final one-minute test passed while locked/display-off, with GPS off, normal ringtone mode, USB connected, the original Optimized app battery policy and no battery exemption. Debug traces logged audio startup roughly 0.3 seconds after the deadline with `interactive=false`, plus vibration and manifest delivery; the rider confirmed hearing and feeling the alert before unlock. This resolves the observed delay for this controlled case. It does not establish unplugged/deep-idle, battery saver, DND/headphone, moving GPS, a second device or signed-release behavior. Seven regression tests and debug build/lint pass (0 errors, 25 warnings, 1 hint). Temporary display/logging/power-test overrides were restored and QA tracking stopped. Debug traces contain no locations/destinations and are disabled for non-debuggable builds. Public release remains on hold for the remaining matrix.
 
+Pilot-map follow-up (November 5, 2026). All 5,793 pilot tiles decoded successfully. The Infinix passed offline rendering and focused destination selection checks. Device testing caught a map sizing issue and crowded large-text labels, both addressed in the debug build. Moving rides and comparative performance measurements remain open. See the [pilot map design review](<Para Pilot Map Design Review.md>).
+
 ## Evidence
 
 | Area | Result |
@@ -27,7 +29,7 @@ The final one-minute test passed while locked/display-off, with GPS off, normal 
 | Automated regression coverage | Seven Gradle unit tests pass, covering backup timing, duplicate/delayed callbacks, monotonic countdown conversion, arrival priority, first-fix arrival, stale fixes, and path gaps including a disabled GPS provider. No instrumentation tests were found. |
 | Android lint | Alarm-fix debug lint completed with 0 errors, 25 warnings, and 1 hint. Remaining findings include the map touch accessibility warning. See the [lint report](../app/build/reports/lint-results-debug.html). |
 | Build and signing | The debug APK and release AAB build. The release bundle is unsigned, as confirmed by `jarsigner`; it is not ready for Play upload. |
-| Live UI retest | Blocked: the Infinix disconnected before the retest and the local emulator stayed offline in ADB. The screenshot review and historical device results are separate evidence. |
+| Live UI retest | The Infinix reconnected and passed focused pilot map and landmark selection checks in airplane mode with Wi-Fi off. The emulator stayed offline. |
 | Packaging | The rebuilt debug APK targets API 37, contains the color and themed launcher resources, and passes APK ZIP alignment at 16 KB. The arm64 and x86_64 native library load segments in the previous debug build, including MapLibre, were also 16 KB aligned. Repeat these checks on the signed release. |
 
 ## UI and UX findings

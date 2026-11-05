@@ -4,6 +4,21 @@ Use the current debug APK and your Infinix X6852. Record the phone model, Androi
 
 ## 1. Offline map and stop search
 
+### Pilot detail and landmark confirmation
+
+With the pilot-detail build installed, perform these checks in airplane mode with Wi-Fi off. Keep existing saved destinations and history; use a spare profile/device for destructive fresh-install checks.
+
+1. Search a named Tagum–Davao landmark. At street-detail zoom, check real building footprints, major/local roads, water areas and parks where present in the source. Zoom out: building detail should disappear before streets and broad geographic context. Check both ring labels and attribution; use the zoom buttons as well as gestures.
+2. Select a place without an associated entrance. Expect **Landmark location**, missing-entrance guidance, **Use this pin**, **Adjust pin**, and **Enter coordinates**. Selection must remain silent and Start trip unavailable until confirmation.
+3. Tap **Adjust pin**, then tap near another map landmark. The pin must stay at the actual tapped point instead of snapping to that landmark. Enter coordinates as an alternative, then confirm. Check that both ring values and backup timer settings survive the selection flow.
+4. For a source-associated entrance, inspect its kind/access label. An entrance is not a verified vehicle stop. Private/no-access and exit-only entries must not be selectable; unspecified access must not be presented as public access. Confirming a pin must not move it automatically.
+5. Repeat with 200% text size and TalkBack. The details can scroll but all three pin actions must remain reachable. Restore the original text size afterward.
+6. On a recorded overview, verify **Start** and **Last recorded point**, sensible path framing, unchanged raw GPS segments and visible gaps. A last point must not imply confirmed arrival for manual, backup or interrupted outcomes. Save/Discard remain fixed and Recorded distance excludes gaps.
+
+Record map preparation time, warm reopening time, installed storage and observed rendering stalls separately. These checks do not replace moving screen-off GPS/alarm rides or the second-device matrix.
+
+### Nationwide map checks
+
 1. Install the APK. For the first-launch check, use a fresh install on a spare device or Android profile so you can keep your current saved destinations.
 2. Enable airplane mode and confirm Wi-Fi is off. Open Para, then tap **Set destination**.
 3. Wait for the nationwide MapLibre overview. First use prepares local street packs and the search index; measure the wait and available storage. Open **Browse Philippine regions**, pick a region, and pan across a shared border. Search for **Manila** and **Cebu City** and check that each result shows its region and centers the map on the named point. Check real streets and local font labels while still offline; zoom in for smaller landmarks.

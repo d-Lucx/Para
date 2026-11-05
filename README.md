@@ -8,6 +8,7 @@ Para is an offline Android commuter alarm. Choose a destination, configure appro
 
 - Destination-first setup with offline search, named landmark selection, custom coordinates, and two adjustable alert rings.
 - MapLibre Native, 18 bundled Philippine regional PMTiles street packs, local labels, and a public offline place index. The app has no internet permission.
+- A separate Tagum–Davao detail archive with buildings, land use, water, paths and road hierarchy, plus source-associated entrance selection and explicit pin confirmation. New phone verification is pending; see the map review below.
 - A foreground GPS session, private lock-screen notification by default, approach chime, arrival alarm, and optional backup timer. Backup alerts explicitly do not confirm arrival.
 - Encrypted on-device saved destinations, temporary interrupted-trip recovery, and separately saved trip history with deletion.
 - Trip overviews with elapsed time, outcome, and **Recorded distance**, excluding GPS gaps.
@@ -15,11 +16,11 @@ Para is an offline Android commuter alarm. Choose a destination, configure appro
 
 Remaining distance is straight-line proximity, not road-route distance. Para currently has no route planner, turn-by-turn navigation, inertial dead reckoning, or road-snapped recording.
 
-## Next approved map phase
+## Pilot map phase
 
-Use Organic Maps as a reference for geographic context and road hierarchy while keeping Para's interface and alarm behavior. Add detailed buildings, parks, water areas, and walking paths in the Tagum–Davao pilot first. Improve tappable landmark details and entrance-aware pin selection; if no entrance is mapped, ask the rider to confirm or adjust the landmark pin. Keep all regions bundled and retain raw GPS paths, with clearer overview markers and gap explanations.
+The approved light Stitch design now has a native implementation: richer Tagum–Davao geography, landmark details, source-associated entrance choices, manual adjustment without snapping to another landmark, and explicit **Use this pin** confirmation. All regions remain bundled. Trip overviews retain raw GPS paths and gaps, with Start/Last recorded point markers and improved path framing.
 
-These changes are approved for development and **not yet implemented**. Optional route previews, turn-by-turn directions, and downloadable maps are outside this phase. See the [map improvement plan](<docs/Para Map Improvement Plan.md>) for decisions, source references, proposed implementation order, and verification gates.
+The additional archive contains 217,878 building areas and occupies 19.4 MiB. All 5,793 tiles and their geometry streams passed independent decoding; fixtures cover polygon holes, relation/member duplication, entrance association and clipping. The Infinix renders real pilot streets/buildings in airplane mode with Wi-Fi off. Landmark/entrance selection, private-entrance disabling, manual adjustment, coordinate entry and retained ring/timer settings passed focused device checks. The final 200% text check passed on the Infinix. Comparative performance, screen-reader checks and moving rides remain open. The [pilot map design review](<docs/Para Pilot Map Design Review.md>) records the design, data and evidence. Optional routing, downloads and road snapping are outside this phase.
 
 ## Build and verify
 
@@ -46,7 +47,7 @@ Install on a connected, USB-debugging-enabled device:
 & "$env:LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" -d install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The debug APK is at `app/build/outputs/apk/debug/app-debug.apk`; lint reports are under `app/build/reports/`. Current alarm-fix validation: seven unit tests pass, lint has 0 errors, 25 warnings, and 1 hint. Builds and unit tests do not replace the [physical-device verification guide](<docs/Para Device Verification Guide.md>). Record new results in the [acceptance checklist](<docs/Para v1 Acceptance Checklist.md>).
+The debug APK is at `app/build/outputs/apk/debug/app-debug.apk`; lint reports are under `app/build/reports/`. Current validation: nine unit tests pass (seven trip/deadline tests and two light/dark style integrity tests); lint has 0 errors, 25 warnings, and 1 hint. The debug APK and unsigned release bundle build; the APK passes 16 KB native-library ZIP alignment checking. Builds and unit tests do not replace the [physical-device verification guide](<docs/Para Device Verification Guide.md>). Record new results in the [acceptance checklist](<docs/Para v1 Acceptance Checklist.md>).
 
 ## Repository layout
 

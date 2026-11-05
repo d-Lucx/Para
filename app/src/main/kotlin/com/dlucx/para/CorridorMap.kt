@@ -11,11 +11,16 @@ import android.util.AtomicFile
 import android.view.MotionEvent
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +36,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -67,7 +75,7 @@ private const val South = 6.99
 private const val North = 7.48
 private const val West = 125.51
 private const val East = 125.89
-private const val Overlay = "para-overlay"
+
 
 @Composable
 internal fun CorridorMap(
@@ -83,8 +91,10 @@ internal fun CorridorMap(
     readOnly: Boolean = false,
     region: MapRegion? = null,
     focusSelection: Boolean = false,
+    snapToLandmarks: Boolean = true,
 ) {
     val context = LocalContext.current
+    val largeText = LocalDensity.current.fontScale > 1.3f
     val mapData by rememberOfflineMapData()
     val loaded = mapData?.getOrNull()
     if (loaded == null) {
@@ -140,6 +150,7 @@ internal fun CorridorMap(
     val latestApproach by rememberUpdatedState(approachRadiusMeters)
     val latestArrival by rememberUpdatedState(arrivalRadiusMeters)
     val select by rememberUpdatedState(onPointSelected)
+    val snap by rememberUpdatedState(snapToLandmarks)
     val outside by rememberUpdatedState(onOutsideCoverage)
     val changeApproach by rememberUpdatedState(onApproachRadiusChanged)
     val changeArrival by rememberUpdatedState(onArrivalRadiusChanged)
@@ -180,13 +191,14 @@ internal fun CorridorMap(
     val primary = colors.primary.hex()
     val outline = colors.outline.hex()
     val minor = colors.outlineVariant.hex()
-    val water = colors.secondary.hex()
+    val water = if (colors.surface.luminance() < 0.3f) "#6594AD" else "#99C8DE"
     val land = colors.surfaceContainer.hex()
     val landAlternate = colors.surfaceContainerHigh.hex()
     val arrival = colors.error.hex()
     val approach = if (colors.surface.luminance() < 0.3f) "#FFB84C" else "#875000"
     val mapStyle = remember(archiveUrl, background, primary, outline, minor, water, approach, arrival, land, landAlternate) {
-        styleJson(archiveUrl, streetPacks, background, primary, outline, minor, water, approach, arrival, land, landAlternate)
+        styleJson(archiveUrl, streetPacks, background, primary, outline, minor, water, approach, arrival, land, landAlternate,
+            loaded.pilot.url, colors.surface.luminance() < 0.3f)
     }
     DisposableEffect(view, mapStyle, readOnly) {
         var active = true
@@ -207,10 +219,10 @@ internal fun CorridorMap(
                     val namedLayers = listOf("national-labels", "pilot-stop-labels", "national-points", "pilot-stop-points", "places") +
                         streetPacks.flatMap { listOf("landmarks-${it.id}", "landmark-points-${it.id}",
                             "landmarks-detail-${it.id}", "landmark-points-detail-${it.id}") }
-                    val named = nativeMap.queryRenderedFeatures(
+                    val named = if (snap) nativeMap.queryRenderedFeatures(
                         RectF(pixel.x - hit, pixel.y - hit, pixel.x + hit, pixel.y + hit),
                         *namedLayers.toTypedArray(),
-                    ).firstOrNull()
+                    ).firstOrNull() else null
                     val anchor = named?.geometry() as? Point
                     val chosen = if (anchor == null) point else CorridorPoint(anchor.latitude(), anchor.longitude())
                     if (regionalMaps.covers(chosen)) select(chosen, named?.getStringProperty("name")) else outside()
@@ -297,24 +309,54 @@ internal fun CorridorMap(
         }
     }
     LaunchedEffect(map, selectedPoint, focusSelection) {
+        if (readOnly && recordedSegments.any { it.isNotEmpty() }) return@LaunchedEffect
         val point = selectedPoint ?: return@LaunchedEffect
         val nativeMap = map ?: return@LaunchedEffect
         val location = LatLng(point.latitude, point.longitude)
         view.post {
             if (!view.isAttachedToWindow) return@post
             if (focusSelection) {
-                nativeMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, maxOf(13.5, nativeMap.cameraPosition.zoom)))
+                val detailZoom = if (point.isInsidePilotCoverage()) 15.5 else 13.5
+                nativeMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, maxOf(detailZoom, nativeMap.cameraPosition.zoom)))
             } else if (!nativeMap.projection.visibleRegion.latLngBounds.contains(location)) {
                 nativeMap.moveCamera(CameraUpdateFactory.newLatLng(location))
             }
         }
     }
+    LaunchedEffect(map, recordedSegments, readOnly) {
+        if (!readOnly) return@LaunchedEffect
+        val nativeMap = map ?: return@LaunchedEffect
+        val points = recordedSegments.flatten()
+        if (points.isEmpty()) return@LaunchedEffect
+        view.post {
+            if (!view.isAttachedToWindow || view.width == 0 || view.height == 0) return@post
+            val south = points.minOf { it.latitude }
+            val north = points.maxOf { it.latitude }
+            val west = points.minOf { it.longitude }
+            val east = points.maxOf { it.longitude }
+            if (south == north && west == east) nativeMap.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(south, west), 15.0))
+            else nativeMap.moveCamera(CameraUpdateFactory.newLatLngBounds(
+                LatLngBounds.from(north, east, south, west), 40))
+        }
+    }
     Box(modifier) {
         AndroidView(factory = { view }, modifier = Modifier.fillMaxSize())
+        Column(Modifier.align(Alignment.TopEnd).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            OutlinedButton(onClick = { map?.animateCamera(CameraUpdateFactory.zoomIn()) },
+                modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp)) { Text("+", Modifier.semantics { contentDescription = "Zoom in" }) }
+            OutlinedButton(onClick = { map?.animateCamera(CameraUpdateFactory.zoomOut()) },
+                modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp)) { Text("−", Modifier.semantics { contentDescription = "Zoom out" }) }
+        }
+        if (!readOnly && selectedPoint != null && approachRadiusMeters > 0 && arrivalRadiusMeters > 0) {
+            Surface(Modifier.align(Alignment.TopStart).padding(8.dp)) {
+                Text("Approach $approachRadiusMeters m\nArrival $arrivalRadiusMeters m", Modifier.padding(6.dp), style = MaterialTheme.typography.labelSmall)
+            }
+        }
         if (failed) Text("Offline map unavailable", Modifier.align(Alignment.Center))
         Surface(Modifier.align(Alignment.BottomEnd)) {
             Text(
-                "© OpenStreetMap contributors · GeoNames\nRegional boundaries: NAMRIA / PSA",
+                if (largeText) "© OpenStreetMap contributors · GeoNames"
+                else "© OpenStreetMap contributors · GeoNames\nRegional boundaries: NAMRIA / PSA",
                 Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                 style = MaterialTheme.typography.labelSmall,
             )
@@ -355,6 +397,12 @@ private fun overlay(
         if (points.size >= 2) line("track", points)
         else points.firstOrNull()?.let { marker("track-point", it) }
     }
+    segments.firstOrNull { it.isNotEmpty() }?.firstOrNull()?.let {
+        marker("track-start", Point.fromLngLat(it.longitude, it.latitude))
+    }
+    segments.lastOrNull { it.isNotEmpty() }?.lastOrNull()?.let {
+        marker("track-end", Point.fromLngLat(it.longitude, it.latitude))
+    }
     if (selected != null) {
         marker("pin", selected.asPoint())
         for ((kind, radius) in listOf("approach" to approach, "arrival" to arrival)) {
@@ -375,86 +423,4 @@ private fun ringPoint(center: CorridorPoint, radius: Int, angle: Double): Point 
 }
 
 private fun Color.hex(): String = String.format(Locale.ROOT, "#%06X", toArgb() and 0xFFFFFF)
-
-private fun styleJson(
-    archiveUrl: String, streetPacks: List<StreetPack>, background: String, primary: String, outline: String, minor: String,
-    water: String, approach: String, arrival: String, land: String, landAlternate: String,
-): String {
-    fun line(id: String, source: String, kind: String, color: String, width: Double, dash: Boolean = false): String {
-        val sourceLayer = if (source == "corridor") ""","source-layer":"lines"""" else ""
-        val dashPaint = if (dash) ""","line-dasharray":[2,2]""" else ""
-        return """{"id":"$id","type":"line","source":"$source"$sourceLayer,
-            "filter":["==","kind","$kind"],"paint":{"line-color":"$color","line-width":$width$dashPaint}}"""
-    }
-    fun circle(kind: String, color: String, radius: Int) =
-        """{"id":"$kind","type":"circle","source":"$Overlay","filter":["==","kind","$kind"],
-            "paint":{"circle-color":"$color","circle-radius":$radius,"circle-stroke-color":"$background","circle-stroke-width":1}}"""
-    val streetGeometry = streetPacks.flatMap { pack ->
-        listOf("local" to minor, "water" to water, "rail" to outline, "main" to outline).map { (kind, color) ->
-            """{"id":"$kind-${pack.id}","type":"line","source":"streets-${pack.id}","source-layer":"roads",
-                "filter":["==","kind","$kind"],"paint":{"line-color":"$color",
-                "line-width":["interpolate",["linear"],["zoom"],8,0.6,14,${if (kind == "main") 2.5 else 1.3}]}}"""
-        }
-    }
-    val landmarkKinds = "\"Bus station\",\"Ferry terminal\",\"Railway station\",\"Airport\",\"Hospital\",\"Transit stop\""
-    fun landmarkLayers(pack: StreetPack, detail: Boolean): List<String> {
-        val id = (if (detail) "detail-" else "") + pack.id
-        val filter = """["${if (detail) "!in" else "in"}","kind",$landmarkKinds]"""
-        val zoom = if (detail) 15 else 13
-        return listOf(
-            """{"id":"landmark-points-$id","type":"circle","source":"streets-${pack.id}","source-layer":"landmarks","minzoom":$zoom,
-                "filter":$filter,"paint":{"circle-color":"$primary","circle-radius":2.5}}""",
-            """{"id":"landmarks-$id","type":"symbol","source":"streets-${pack.id}","source-layer":"landmarks","minzoom":$zoom,
-                "filter":$filter,"layout":{"text-field":["get","name"],"text-font":["Inter-Regular"],"text-size":12,
-                "text-anchor":"top","text-offset":[0,0.5],"text-max-width":12},
-                "paint":{"text-color":"$primary","text-halo-color":"$land","text-halo-width":1.5}}""",
-        )
-    }
-    val streetLabels = streetPacks.flatMap { pack -> listOf(
-        """{"id":"road-names-${pack.id}","type":"symbol","source":"streets-${pack.id}","source-layer":"roads","minzoom":13,
-            "layout":{"symbol-placement":"line","text-field":["get","name"],"text-font":["Inter-Regular"],"text-size":11},
-            "paint":{"text-color":"$outline","text-halo-color":"$land","text-halo-width":1.5}}""",
-    ) + landmarkLayers(pack, false) + landmarkLayers(pack, true) }
-    val layers = listOf(
-        """{"id":"background","type":"background","paint":{"background-color":"$background"}}""",
-        """{"id":"regional-land","type":"fill","source":"regions","paint":{
-            "fill-color":["match",["get","shade"],1,"$landAlternate",2,"$land","$minor"],
-            "fill-opacity":0.54}}""",
-        """{"id":"regional-boundaries","type":"line","source":"regions",
-            "paint":{"line-color":"$outline","line-width":1}}""",
-        """{"id":"regional-name-labels","type":"symbol","source":"region-names","maxzoom":7.5,
-            "layout":{"icon-image":["concat","region:",["get","name"]],"icon-size":0.7}}""",
-        line("coast", "corridor", "coast", water, 2.0),
-    ) + streetGeometry + streetLabels + listOf(
-        line("coverage", Overlay, "boundary", outline, 2.0, dash = true),
-        line("track", Overlay, "track", primary, 3.5),
-        line("approach", Overlay, "approach", approach, 2.0, dash = true),
-        line("arrival", Overlay, "arrival", arrival, 2.0),
-        circle("track-point", primary, 3),
-        circle("pin", primary, 6),
-        circle("approach-handle", approach, 4),
-        circle("arrival-handle", arrival, 4),
-        """{"id":"places","type":"symbol","source":"corridor","source-layer":"places",
-            "layout":{"icon-image":["get","name"],"icon-size":0.65,"icon-anchor":"bottom-left"}}""",
-        namedLayer("national", false, 6.5, primary),
-        namedLayer("pilot-stop", true, 9.0, primary),
-    )
-    val streetSources = streetPacks.joinToString(",") { """"streets-${it.id}":{"type":"vector","url":"${it.url}"}""" }
-    return """{"version":8,"glyphs":"asset://glyphs/{fontstack}/{range}.pbf","sources":{
-        $streetSources,
-        "corridor":{"type":"vector","url":"$archiveUrl"},
-        "regions":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}},
-        "region-names":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}},
-        "named-places":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}},
-        "$Overlay":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}}
-        },"layers":[""" + layers.joinToString(",") + "]}"
-}
-
-private fun namedLayer(id: String, pilot: Boolean, minZoom: Double, color: String) =
-    """{"id":"$id-points","type":"circle","source":"named-places","minzoom":$minZoom,
-        "filter":["==","pilot",$pilot],"paint":{"circle-radius":4,"circle-color":"$color"}},
-        {"id":"$id-labels","type":"symbol","source":"named-places","minzoom":$minZoom,
-        "filter":["==","pilot",$pilot],"layout":{
-            "icon-image":["concat","place:",["get","name"]],"icon-size":0.65,
-            "icon-anchor":"bottom-left","icon-offset":[5,-4]}}"""
 

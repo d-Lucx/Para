@@ -1,6 +1,8 @@
 # Para map improvement plan
 
-Updated November 5, 2026. This records a source review and user-approved scope, not completed map implementation.
+Updated November 5, 2026. This records approved scope, implementation progress and bounded verification evidence.
+
+The user approved the final light Stitch proposal and requested implementation. Native map/selection changes and pilot asset generation are complete and build-verified. After reconnecting, the Infinix passed focused offline rendering and selection checks. The final layout check also passed at 200% text. The [pilot map design review](<Para Pilot Map Design Review.md>) records data totals and evidence. Comparative performance, accessibility and moving-ride checks remain open. The emulator stayed offline and was stopped.
 
 ## Approved decisions
 
@@ -32,7 +34,7 @@ Reviewed the public `master` sources linked below on November 5, 2026. Branch li
 
 This phase uses Organic Maps as a reference, without copying its code, style assets, icons or binary maps. Its root [LICENSE](https://github.com/organicmaps/organicmaps/blob/master/LICENSE) points to Apache 2.0; [NOTICE](https://github.com/organicmaps/organicmaps/blob/master/NOTICE) records additional attribution and third-party information, and [DATA_LICENSE.txt](https://github.com/organicmaps/organicmaps/blob/master/DATA_LICENSE.txt) separately covers compiled map data. Review the relevant files at a pinned revision before any future reuse. Organic Maps `.mwm` files and MapCSS styles are not drop-in replacements for Para's PMTiles/MapLibre assets.
 
-## Current Para baseline
+## Baseline before the pilot detail phase
 
 | Area | Current implementation | Gap / opportunity |
 | --- | --- | --- |
@@ -72,14 +74,14 @@ Evaluate restricting expensive detail by zoom and viewport, caching unchanged ov
 
 ## Acceptance gates
 
-- [ ] Confirm pilot map/landmark-sheet designs against approved Para styling before production UI changes.
-- [ ] Validate generated pilot tiles, polygon holes, feature counts, source dates/hashes, local glyphs, and notices.
+- [x] Confirm pilot map/landmark-sheet designs against approved Para styling before production UI changes. User selected “Approve and implement.”
+- [x] Generate/normalize pilot geometry and validate hashes, schema, counts and all 5,793 tile geometry streams with an independent decoder. Synthetic fixtures verify holes and duplicate-member suppression. Existing local glyph assets are retained; the pilot notice is included in APK/AAB.
 - [ ] Verify roads, water, parks, buildings and walking paths at appropriate zooms in airplane mode with Wi-Fi off, including fresh install.
 - [ ] Verify landmark/entrance selection, missing-entrance explanation, pin adjustment, retained draft and coordinate fallback on the phone.
 - [ ] Check TalkBack, large text, color distinction and ring/track legibility.
 - [ ] Verify recorded gaps remain separate, distance unchanged, and start/end markers do not imply a confirmed arrival for backup/manual/interrupted outcomes.
 - [ ] Capture comparative storage, startup, rendering, memory, search and power evidence; ensure the active GPS/alarm session is unaffected.
-- [ ] Repeat relevant ride/release gates in the main acceptance checklist. No new physical test is marked passed by this planning change.
+- [ ] Repeat relevant ride/release gates in the main acceptance checklist. No new physical test is marked passed by build/data validation.
 
 ## Suggestions for later decisions
 

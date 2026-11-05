@@ -61,6 +61,12 @@ internal class StopCatalog private constructor(private val database: SQLiteDatab
         ).use { if (it.moveToFirst()) it.getString(0) else null }
     }
 
+    fun at(point: CorridorPoint): TransitStop? = database.rawQuery(
+        "SELECT id,name,locality,latitude,longitude FROM places WHERE lat_e7 BETWEEN ? AND ? AND lon_e7 BETWEEN ? AND ? LIMIT 1",
+        arrayOf((point.latitude * 1e7).roundToLong() - 200, (point.latitude * 1e7).roundToLong() + 200,
+            (point.longitude * 1e7).roundToLong() - 200, (point.longitude * 1e7).roundToLong() + 200).map { it.toString() }.toTypedArray(),
+    ).use { if (it.moveToFirst()) it.stop() else null }
+
     private fun Cursor.stop() = TransitStop(getString(0), getString(1), getString(2), getDouble(3), getDouble(4))
 
     companion object {

@@ -4,7 +4,7 @@ Review date: November 5, 2026. Sources: the original architecture, approved conv
 
 **Assessment:** Para implements the core approved Android v1 architecture, with intentional changes and remaining verification gates. It does not implement every mechanism in the original cross-platform blueprint. Nationwide data availability does not mean nationwide ride or alarm verification.
 
-**Next approved phase:** The [map improvement plan](<Para Map Improvement Plan.md>) records the Organic Maps source review and user decisions: richer Tagum–Davao geography, landmark/entrance confirmation, all regions bundled, and clearer raw-track overviews. These additions are planned; the current implementation comparison below remains the baseline. Routing and downloads are outside this phase.
+**Pilot map phase.** Para now bundles a separate Tagum–Davao PMTiles archive with building footprints, land use, water, paths and classified roads. The 18 national packs remain bundled. The Infinix offline smoke test covered landmark confirmation, mapped and restricted entrances, manual pin adjustment and coordinate entry. Trip overviews now frame the raw path and mark its endpoints. See the [pilot map design review](<Para Pilot Map Design Review.md>).
 
 ## Requirement-by-requirement comparison
 

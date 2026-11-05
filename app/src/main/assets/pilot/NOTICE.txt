@@ -1,0 +1,25 @@
+Tagum–Davao pilot geographic detail and entrance associations
+
+© OpenStreetMap contributors, Open Database License (ODbL) 1.0.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Source: the same Geofabrik Philippine extract downloaded November 5, 2026
+as the national commuter street packs. Source SHA-256:
+ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51
+
+Para selects and clips pilot buildings, land use, water areas, walking paths
+and classified roads. Polygon holes are retained. Entrances are associated
+only with a named mapped landmark boundary; they are not verified vehicle
+stops, and absent access tags do not establish public access.
+This is geographic context, not a routing graph or complete address catalog.
+
+Reproducible transformations and validation fixtures are in the Para repo:
+https://github.com/d-Lucx/Para
+tools/extract-pilot-detail.py
+tools/build-pilot-detail.mjs
+tools/verify-pilot-detail.mjs
+tools/test-pilot-detail.py
+
+The app retains independently attributed GeoNames/region data and local
+font notices. No Organic Maps code, artwork, style file or binary map is used.

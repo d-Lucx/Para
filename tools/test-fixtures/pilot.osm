@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="Para geometry regression fixture">
+ <node id="1" lat="7.1" lon="125.6"><tag k="entrance" v="main"/></node>
+ <node id="2" lat="7.1" lon="125.61"/>
+ <node id="3" lat="7.11" lon="125.61"/>
+ <node id="4" lat="7.11" lon="125.6"/>
+ <node id="5" lat="7.103" lon="125.603"/>
+ <node id="6" lat="7.103" lon="125.607"/>
+ <node id="7" lat="7.107" lon="125.607"/>
+ <node id="8" lat="7.107" lon="125.603"/>
+ <node id="9" lat="7.101" lon="125.601"><tag k="entrance" v="yes"/></node>
+ <node id="10" lat="7.12" lon="125.6"/>
+ <node id="11" lat="7.12" lon="125.61"/>
+ <node id="12" lat="7.13" lon="125.61"/>
+ <node id="13" lat="7.13" lon="125.6"/>
+ <node id="14" lat="7.14" lon="125.6"/>
+ <node id="15" lat="7.14" lon="125.61"/>
+ <node id="16" lat="7.15" lon="125.61"/>
+ <node id="17" lat="7.15" lon="125.6"/>
+ <node id="20" lat="7.1" lon="125.50"/>
+ <node id="21" lat="7.1" lon="125.52"/>
+ <node id="22" lat="7.2" lon="125.6"/>
+ <node id="23" lat="7.21" lon="125.61"/>
+ <way id="1"><nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/><nd ref="1"/><tag k="building" v="yes"/></way>
+ <way id="2"><nd ref="5"/><nd ref="6"/><nd ref="7"/><nd ref="8"/><nd ref="5"/></way>
+ <way id="3"><nd ref="10"/><nd ref="11"/><nd ref="12"/><nd ref="13"/><nd ref="10"/><tag k="natural" v="water"/></way>
+ <way id="4"><nd ref="14"/><nd ref="15"/><nd ref="16"/><nd ref="17"/><nd ref="14"/><tag k="leisure" v="park"/></way>
+ <way id="5"><nd ref="20"/><nd ref="21"/><tag k="highway" v="primary"/><tag k="name" v="Cross-border fixture road"/></way>
+ <way id="6"><nd ref="22"/><nd ref="23"/><tag k="highway" v="footway"/><tag k="access" v="private"/></way>
+ <relation id="100"><member type="way" ref="1" role="outer"/><member type="way" ref="2" role="inner"/><tag k="type" v="multipolygon"/><tag k="building" v="yes"/><tag k="amenity" v="school"/><tag k="name" v="Fixture school"/></relation>
+</osm>

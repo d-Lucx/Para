@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -77,6 +78,9 @@ internal fun DestinationSetup(
     val (catalog, maps) = loaded
     val focus = LocalFocusManager.current
     var query by remember { mutableStateOf("") }
+    var searching by remember { mutableStateOf(false) }
+    val setupScroll = rememberScrollState()
+    val largeText = LocalDensity.current.fontScale > 1.3f
     var point by remember(initialDestination) {
         mutableStateOf(initialDestination?.let { CorridorPoint(it.latitude, it.longitude) })
     }
@@ -97,8 +101,13 @@ internal fun DestinationSetup(
     var region by remember { mutableStateOf<MapRegion?>(null) }
     var regionsOpen by remember { mutableStateOf(false) }
     var focusSelection by remember(initialDestination) { mutableStateOf(initialDestination != null) }
+    var confirmed by remember(initialDestination) { mutableStateOf(initialDestination != null) }
+    var candidate by remember { mutableStateOf<TransitStop?>(null) }
+    var adjusting by remember { mutableStateOf(false) }
+    var entranceSelected by remember { mutableStateOf(false) }
 
     val selectedPoint = remember(point, maps) { point?.takeIf(maps::covers) }
+    val confirming = selectedPoint != null && !confirmed && !searching && query.isBlank()
     val selectedRegion = remember(selectedPoint, maps) { selectedPoint?.let(maps::regionAt) }
     val approachMeters = approach.toIntOrNull()?.takeIf { it > 0 }
     val arrivalMeters = arrival.toIntOrNull()?.takeIf { it > 0 }
@@ -110,9 +119,13 @@ internal fun DestinationSetup(
         }
     }
 
-    fun selectPoint(position: CorridorPoint, label: String, centerMap: Boolean = false) {
+    fun selectPoint(position: CorridorPoint, label: String, centerMap: Boolean = false, place: TransitStop? = null) {
         point = position
         name = label
+        candidate = place
+        confirmed = false
+        searching = false
+        entranceSelected = false
         focusSelection = centerMap
         if (centerMap) region = maps.regionAt(position)
         outsideCoverage = false
@@ -120,7 +133,7 @@ internal fun DestinationSetup(
         focus.clearFocus()
     }
 
-    val draft = if (selectedPoint != null && name.isNotBlank() && orderedRings &&
+    val draft = if (confirmed && selectedPoint != null && name.isNotBlank() && orderedRings &&
         (!backupEnabled || backup != null)
     ) {
         DestinationDraft(
@@ -129,16 +142,60 @@ internal fun DestinationSetup(
         )
     } else null
     var coordinatesOpen by remember { mutableStateOf(false) }
-    BackHandler(onBack = onBack)
+    BackHandler {
+        if (searching) { searching = false; query = ""; focus.clearFocus() } else onBack()
+    }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { ParaHeader("Destination setup", onBack = onBack) },
+        topBar = { ParaHeader(if (largeText) "Destination" else "Set destination", badge = if (largeText) null else "OFFLINE", onBack = onBack) },
         bottomBar = {
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
                 Column(
                     Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    if (confirming) {
+                        val entrances = loaded.pilot.entrancesFor(candidate?.id)
+                        Column(Modifier.fillMaxWidth().heightIn(max = if (largeText) 140.dp else 220.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(name, style = MaterialTheme.typography.titleMedium, maxLines = 2)
+                        ParaBadge(if (entranceSelected) "Mapped entrance" else if (candidate != null) "Landmark location" else "Custom pin")
+                        candidate?.let { Text(it.locality, style = MaterialTheme.typography.bodySmall) }
+                        Text(when {
+                            adjusting -> "Tap the map or enter coordinates to move the pin to your intended stop."
+                            entranceSelected -> "Mapped entrance, not a confirmed vehicle drop-off. Check this pin before using it."
+                            entrances.isNotEmpty() -> "Choose a mapped entrance below, or confirm/adjust this landmark pin."
+                            candidate != null -> "No entrance mapped. Confirm or adjust this pin to your intended stop."
+                            else -> "Confirm this pin or adjust it to your intended stop."
+                        }, style = MaterialTheme.typography.bodySmall)
+                        if (entrances.isNotEmpty() && !adjusting) {
+                            Column {
+                                entrances.forEachIndexed { index, entrance ->
+                                    TextButton(onClick = {
+                                        point = entrance.point
+                                        entranceSelected = true
+                                        focusSelection = true
+                                    }, enabled = entrance.selectable) {
+                                        Text("Entrance ${index + 1} · ${entrance.kind}" +
+                                            if (entrance.access.isNotEmpty()) " · ${entrance.access}" else " · access unspecified")
+                                    }
+                                }
+                            }
+                        }
+                        Text("Approach $approach m · Arrival $arrival m · " + if (backupEnabled) "Backup $backupMinutes min" else "Backup off",
+                            style = MaterialTheme.typography.bodySmall)
+                        Text("Already inside the arrival zone? The first usable GPS fix will sound the alarm.", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { adjusting = true; candidate = null; entranceSelected = false },
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text("Adjust pin") }
+                            Button(onClick = { confirmed = true; adjusting = false },
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text("Use this pin") }
+                        }
+                        TextButton(onClick = { focus.clearFocus(); coordinatesOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Enter coordinates")
+                        }
+                    } else {
                     val radius = if (orderedRings) "Arrival radius: $arrivalMeters m" else "Check alert radii"
                     val timer = when {
                         !backupEnabled -> "Backup timer off"
@@ -152,10 +209,11 @@ internal fun DestinationSetup(
                     }
                     Button(
                         onClick = { draft?.let(onStartTrip) },
-                        enabled = draft != null,
+                        enabled = draft != null && query.isBlank(),
                         modifier = Modifier.weight(1.2f).heightIn(min = 48.dp),
                         shape = MaterialTheme.shapes.medium,
                     ) { Text("Start trip") }
+                    }
                     }
                 }
             }
@@ -163,9 +221,15 @@ internal fun DestinationSetup(
     ) { insets ->
         Column(
             modifier = Modifier.fillMaxSize().padding(insets)
-                .verticalScroll(rememberScrollState()).padding(16.dp),
+                .then(if (confirming) Modifier else Modifier.verticalScroll(setupScroll)).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            if (confirming) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { searching = true }, modifier = Modifier.weight(1f)) { Text(if (largeText) "Search" else "Change place") }
+                    TextButton(onClick = { regionsOpen = true }, modifier = Modifier.weight(1f)) { Text(if (largeText) "Regions" else "Browse regions") }
+                }
+            } else {
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it.take(128) },
@@ -186,7 +250,8 @@ internal fun DestinationSetup(
                 results.forEach { stop ->
                     OutlinedButton(
                         onClick = {
-                            selectPoint(CorridorPoint(stop.latitude, stop.longitude), stop.name, centerMap = true)
+                            adjusting = false
+                            selectPoint(CorridorPoint(stop.latitude, stop.longitude), stop.name, centerMap = true, place = stop)
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -203,13 +268,15 @@ internal fun DestinationSetup(
                     )
                 }
             }
+            }
             CorridorMap(
                 selectedPoint = selectedPoint,
                 approachRadiusMeters = if (orderedRings) approachMeters else 0,
                 arrivalRadiusMeters = if (orderedRings) arrivalMeters else 0,
                 onPointSelected = { position, label ->
+                    val place = if (label != null && !adjusting) catalog.at(position)?.takeIf { it.name == label } else null
                     val nearby = if (label == null) catalog.nearby(position) else null
-                    selectPoint(position, label ?: nearby?.let { "Pin near ${it.name}" } ?: "Custom pin")
+                    selectPoint(position, if (adjusting) name else label ?: nearby?.let { "Pin near ${it.name}" } ?: "Custom pin", place = place)
                 },
                 onOutsideCoverage = { outsideCoverage = true },
                 onApproachRadiusChanged = { meters ->
@@ -218,10 +285,12 @@ internal fun DestinationSetup(
                 onArrivalRadiusChanged = { meters ->
                     if (meters > 0 && meters < (approachMeters ?: 0)) arrival = meters.toString()
                 },
-                modifier = Modifier.fillMaxWidth().height(360.dp),
+                modifier = if (confirming) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(360.dp),
                 region = region,
                 focusSelection = focusSelection,
+                snapToLandmarks = !adjusting,
             )
+            if (!confirming) {
             ParaPanel {
                 ParaBadge("ARRIVAL TARGET", highlighted = true)
                 Text(
@@ -295,10 +364,11 @@ internal fun DestinationSetup(
             }
             OutlinedButton(
                 onClick = { draft?.let(onSave) },
-                enabled = draft != null,
+                enabled = draft != null && query.isBlank(),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Save destination")
+            }
             }
         }
     }

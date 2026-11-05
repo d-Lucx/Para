@@ -33,3 +33,23 @@ Search uses a prebuilt SQLite FTS4 index, supported by Android's bundled SQLite,
 Generated PMTiles use gzip-compressed MVT tiles and a root/leaf PMTiles v3 directory. `streets/index.json` records sizes, hashes and feature/tile counts. First map use verifies each asset while copying it atomically to versioned internal files. This works around the MapLibre asset-archive decompression issue; it also means installed map storage includes both the packaged archives and their internal copies. Measure release size and first-use storage before distribution.
 
 OSM-derived assets are ODbL 1.0; keep source attribution and the data notice. Inter glyphs derive from the existing bundled font under its OFL license. Regional boundaries and GeoNames place data retain their separate notices.
+
+## Tagum–Davao pilot detail
+
+The approved detail layer is a separate archive; do not replace all national packs to add it. Run these commands from the repository root using the same source snapshot and build-only dependencies above:
+
+```powershell
+uv run --python 3.12 --with osmium --with shapely python tools/test-pilot-detail.py
+uv run --python 3.12 --with osmium --with shapely python tools/extract-pilot-detail.py <source.osm.pbf> <pilot-intermediates>
+uv run --python 3.12 --with osmium --with shapely python tools/finalize-pilot-detail.py <source.osm.pbf> <pilot-intermediates>
+node --max-old-space-size=8192 tools/build-pilot-detail.mjs <tooling> <pilot-intermediates> app/src/main/assets
+node tools/verify-pilot-detail.mjs <tooling> <pilot-intermediates> app/src/main/assets --all
+```
+
+Stop on any failed command. Area assembly scans the source twice and a national extract can take several minutes. The normalization pass is mandatory: a separately tagged outer way must not cover a courtyard represented by its parent relation. Invalid areas are excluded; relation holes and clipping are checked with the synthetic fixture. Walking-path access/foot tags are retained; proposed/construction/abandoned road ways are removed before tiling.
+
+Pilot source bounds are west 125.51, south 6.99, east 125.89, north 7.48. The schema separates land use, water, buildings, paths and road detail. Stored zooms are 11–16; buildings start at 15 and paths at 14. General coastline assembly is outside this extractor; water polygons and existing river/coast context retain their separate roles.
+
+`pilot/index.json` records the source hash, normalized feature counts, archive hash, bytes and tile count. `pilot/entrances.json` holds source IDs and boundary-associated entrances for named area landmarks, not nearest-place guesses or verified passenger drop-offs. An unassociated or unmapped entrance uses the user-confirmed landmark/custom-pin fallback. No runtime download or routing graph is introduced.
+
+For an independent courtyard-hole check after encoding, run the extractor, finalizer and writer against `tools/test-fixtures/pilot.osm` into temporary fixture directories, then pass `--fixture` as the final argument to `verify-pilot-detail.mjs`. The fixture also covers a separately tagged outer member, a cross-boundary road, unrelated interior entrance and a restricted footway.

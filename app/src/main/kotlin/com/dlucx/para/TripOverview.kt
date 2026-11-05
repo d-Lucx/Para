@@ -95,7 +95,7 @@ internal fun TripOverview(
             )
             Text(
                 if (trip.segments.isEmpty()) "No GPS points were recorded."
-                else "The map shows recorded GPS points. Gaps are excluded from distance.",
+                else "Start and Last recorded point mark the recorded path, not a confirmed arrival. Separate lines show GPS gaps; gaps are excluded from Recorded distance.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

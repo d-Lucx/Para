@@ -72,13 +72,20 @@ Dead reckoning, speed-scaled zones, automatic speaker escalation, and iOS are de
 
 ## 6. Approved map improvement phase (November 5, 2026)
 
-Scope and Organic Maps references are recorded in the [map improvement plan](<Para Map Improvement Plan.md>). These are approved additions, not completed implementation or physical verification.
+Scope and Organic Maps references are recorded in the [map improvement plan](<Para Map Improvement Plan.md>). Build/data implementation evidence is distinguished from physical verification below.
 
 - [x] Record the map review decisions and collect project guides in `docs/`, with a root README and documentation index.
-- [ ] Confirm richer pilot map and landmark details designs while retaining the approved Para interface and alarm rings.
-- [ ] Add Tagum–Davao building footprints, parks, water areas, walking paths and improved road hierarchy. Keep all regional maps bundled.
-- [ ] Add landmark details and source-backed entrance selection. If no entrance is mapped, ask the rider to confirm/adjust the landmark pin; do not automatically snap to a road.
-- [ ] Improve overview start/end markers and GPS-gap explanations, preserving raw samples, visible gaps and Recorded distance.
+- [x] Locate the existing Para Stitch project, verify the cached map-source SHA-256 against its notice, and record the unchanged pack/search baseline in the [pilot map design review](<Para Pilot Map Design Review.md>). ADB detects the Infinix; no new app/device acceptance check is implied.
+- [x] Generate and refine the light pilot-map/landmark-confirmation design in Stitch, export the final PNG and visually inspect it. User confirmation and physical UI checks remain separate.
+- [x] Confirm the final light Stitch pilot-map/landmark design with the user before implementation. The user selected “Approve and implement.”
+- [x] Generate the separate 19.4 MiB Tagum–Davao archive: 217,878 building areas, 2,756 land-use areas, 512 water areas, 6,697 paths and 40,809 classified road ways. Retain all 18 national packs unchanged.
+- [x] Independently decode all 5,793 pilot tiles and feature geometry streams. Verify source/archive hashes, metadata and 79 holes; run the relation-member duplication, courtyard, boundary-entrance, border clipping and access-tag fixture through PMTiles encoding.
+- [x] Implement and build-check landmark details, source-backed entrance selection, missing-entrance confirmation, coordinate fallback and manual adjustment without landmark snapping. Start/Save require a confirmed point and no unfinished search. Phone interaction checks remain open.
+- [x] Implement and build-check overview Start/Last recorded point markers, path framing and gap explanations, preserving raw samples, visible gaps and Recorded distance. Physical overview checks remain open.
+- [x] Pass nine unit tests (seven trip/deadline plus two light/dark style integrity tests), debug APK and unsigned release bundle builds, and APK 16 KB native-library ZIP alignment check. Lint has 0 errors, 25 warnings and 1 hint.
+- [x] On the reconnected Infinix, install without clearing saved data; verify offline pilot buildings/streets/labels, missing-entrance guidance, manual adjustment and explicit confirmation. Verify a mapped entrance, two disabled private entrances, coordinate fallback, and retained 2,000 m/250 m/two-minute settings. No trip was started. Review light/dark captures; fix map height so attribution stays above the footer.
+- [x] Verify the final 200% text layout on the Infinix. The map, source credits and all three pin actions are visible. Full TalkBack and Switch Access checks remain open.
+- [ ] Preserve unsaved setup drafts across rotation/font-scale configuration changes without persisting raw locations in an unencrypted saved-state bundle. Current selection-flow retention does not cover activity recreation.
 - [ ] Measure storage, first-use/warm map readiness, rendering, memory and battery effects; verify offline operation, accessibility and unchanged GPS/alarm behavior on physical devices.
 
 Route previews, turn-by-turn navigation, downloadable maps, typo-tolerant search, category browsing and track export require later decisions.
