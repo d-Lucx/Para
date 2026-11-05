@@ -7,6 +7,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TripSessionTest {
+    @Test
+    fun wallClockChangesPreserveRemainingBackupDuration() {
+        assertEquals(1_050_000L, backupWallClockTrigger(60_000, 10_000, 1_000_000))
+        assertEquals(4_640_000L, backupWallClockTrigger(60_000, 20_000, 4_600_000))
+        assertEquals(430_000L, backupWallClockTrigger(60_000, 30_000, 400_000))
+    }
+
+    @Test
+    fun overdueBackupClockTriggerIsImmediate() {
+        assertEquals(1_000_000L, backupWallClockTrigger(60_000, 61_000, 1_000_000))
+    }
+
     private fun trip() = TripSession(DestinationDraft("Stop", 7.46, 125.80, 1500, 300, 1), 0)
 
     @Test
@@ -26,6 +38,20 @@ class TripSessionTest {
     fun firstFixInArrivalZoneSkipsApproachChime() {
         val trip = trip()
         assertFalse(trip.onFix(7.46, 125.80, 10f, 1_000, 1_000))
+        assertEquals(TripAlert.Arrival, trip.snapshot().alert)
+    }
+
+    @Test
+    fun delayedOrDuplicateTimerCallbackDoesNotReplayDismissedBackup() {
+        val trip = trip()
+        trip.onTime(75_000)
+        assertEquals(TripAlert.Backup, trip.snapshot().alert)
+        trip.dismissBackup(75_001)
+        trip.onTime(75_002)
+        trip.onTime(120_000)
+        assertNull(trip.snapshot().alert)
+        assertFalse(trip.snapshot().backupTimerActive)
+        assertFalse(trip.onFix(7.46, 125.80, 10f, 120_001, 120_001))
         assertEquals(TripAlert.Arrival, trip.snapshot().alert)
     }
 

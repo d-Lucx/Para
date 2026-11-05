@@ -2,6 +2,7 @@ package com.dlucx.para
 
 import android.Manifest
 import android.app.Notification
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.KeyguardManager
@@ -12,6 +13,7 @@ import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.pm.ApplicationInfo
 import android.content.pm.ServiceInfo
 import android.location.Location
 import android.location.LocationListener
@@ -30,16 +32,19 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.widget.Toast
+import android.util.Log
 import androidx.annotation.RawRes
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.roundToInt
+import java.lang.ref.WeakReference
 
 internal class TripService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val locations by lazy { getSystemService(LocationManager::class.java) }
     private val notifications by lazy { getSystemService(NotificationManager::class.java) }
+    private val alarms by lazy { getSystemService(AlarmManager::class.java) }
     private val power by lazy { getSystemService(PowerManager::class.java) }
     private val vibrator: Vibrator by lazy {
         if (Build.VERSION.SDK_INT >= 31) getSystemService(VibratorManager::class.java).defaultVibrator
@@ -55,20 +60,44 @@ internal class TripService : Service() {
     private var recordId = ""
     private var lastCheckpoint = 0L
     private var player: MediaPlayer? = null
-    private var backupWakeLock: PowerManager.WakeLock? = null
     private var backupDeadline: Long? = null
+    private var backupExactScheduled = false
+    private val backupOperation by lazy {
+        PendingIntent.getBroadcast(this, 4, Intent(this, BackupAlarmReceiver::class.java).setAction(BackupAction)
+            .addFlags(Intent.FLAG_RECEIVER_FOREGROUND),
+            PendingIntent.FLAG_IMMUTABLE)
+    }
     private var lastNotification: TripNotification? = null
     private var currentAlert: TripAlert? = null
     private var foreground = false
+    private var lastDebugTick = 0L
 
-    private val screenState = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) = publish()
+    private fun traceBackup(event: String) {
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            Log.i("ParaBackup", "$event; elapsed=${SystemClock.elapsedRealtime()}; interactive=${power.isInteractive}")
+        }
+    }
+
+    private val tripEvents = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            traceBackup("event ${intent.action}")
+            session?.onTime(SystemClock.elapsedRealtime())
+            if ((intent.action == AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED ||
+                    intent.action == Intent.ACTION_TIME_CHANGED) &&
+                session?.snapshot()?.backupTimerActive == true
+            ) backupDeadline?.let(::scheduleBackup)
+            publish()
+        }
     }
 
     private val tick = object : Runnable {
         override fun run() {
             val trip = session ?: return
             trip.onTime(SystemClock.elapsedRealtime())
+            if (backupDeadline != null && SystemClock.elapsedRealtime() - lastDebugTick >= 15_000L) {
+                lastDebugTick = SystemClock.elapsedRealtime()
+                traceBackup("timer tick")
+            }
             if (SystemClock.elapsedRealtime() - lastCheckpoint >= 30_000L) checkpoint(interrupted = true)
             publish()
             handler.postDelayed(this, 1_000L)
@@ -103,14 +132,23 @@ internal class TripService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        liveService = WeakReference(this)
         notifications.createNotificationChannel(
             NotificationChannel(TrackingChannel, getString(R.string.trip_tracking_channel), NotificationManager.IMPORTANCE_LOW)
         )
-        ContextCompat.registerReceiver(this, screenState, IntentFilter().apply {
+        ContextCompat.registerReceiver(this, tripEvents, IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_OFF)
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_USER_PRESENT)
+            addAction(Intent.ACTION_TIME_CHANGED)
+            if (Build.VERSION.SDK_INT >= 31) addAction(AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED)
         }, ContextCompat.RECEIVER_NOT_EXPORTED)
+        // Remove deadlines from the earlier service-PendingIntent implementation.
+        PendingIntent.getService(this, 4, Intent(this, TripService::class.java).setAction(BackupAction),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)?.let(alarms::cancel)
+        PendingIntent.getBroadcast(this, 4, Intent(BackupAction).setPackage(packageName)
+            .addFlags(Intent.FLAG_RECEIVER_FOREGROUND),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)?.let(alarms::cancel)
         notifications.createNotificationChannel(
             NotificationChannel(AlarmChannel, getString(R.string.trip_alarm_channel), NotificationManager.IMPORTANCE_HIGH).apply {
                 setSound(null, null)
@@ -119,7 +157,15 @@ internal class TripService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        traceBackup("service action ${intent?.action}")
         when (intent?.action) {
+            BackupAction -> {
+                // Never resurrect an interrupted session or fire an old trip's deadline early.
+                if (session == null) stopSelf(startId) else {
+                    session?.onTime(SystemClock.elapsedRealtime())
+                    publish()
+                }
+            }
             StartAction -> if (session == null) {
                 val destination = intent.destination()
                 if (destination == null) {
@@ -165,13 +211,9 @@ internal class TripService : Service() {
             lastNotification = initial
             locations.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2_000L, 0f, listener, Looper.getMainLooper())
             destination.backupMinutes?.let { minutes ->
-                val duration = minutes * 60_000L
-                backupDeadline = now + duration
-                backupWakeLock = power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Para:backupTimer")
-                    .apply {
-                        setReferenceCounted(false)
-                        acquire(duration + 5_000L)
-                    }
+                val deadline = now + minutes * 60_000L
+                backupDeadline = deadline
+                scheduleBackup(deadline)
             }
             session = trip
             recordId = TripHistory.newId()
@@ -201,7 +243,7 @@ internal class TripService : Service() {
         val trip = session ?: return
         val gpsEnabled = locations.isProviderEnabled(LocationManager.GPS_PROVIDER)
         if (!gpsEnabled) trip.onGpsUnavailable()
-        val snapshot = trip.snapshot().copy(gpsProviderEnabled = gpsEnabled)
+        val snapshot = trip.snapshot().copy(gpsProviderEnabled = gpsEnabled, backupTimerExact = backupExactScheduled)
         val alert = snapshot.alert
         mutableState.value = snapshot
         val previous = currentAlert
@@ -210,6 +252,7 @@ internal class TripService : Service() {
             currentAlert = alert
             when (alert) {
                 TripAlert.Backup -> {
+                    traceBackup("backup alert starting")
                     playSound(R.raw.backup_alarm, loop = true)
                     notifications.notify(AlarmNotificationId, alarmNotification(content, fullScreen = false))
                 }
@@ -237,7 +280,7 @@ internal class TripService : Service() {
 
         val deadline = backupDeadline
         if (deadline != null && (alert != null || SystemClock.elapsedRealtime() >= deadline)) {
-            releaseBackupWakeLock()
+            cancelBackup()
         }
         if (content != lastNotification) {
             lastNotification = content
@@ -254,8 +297,9 @@ internal class TripService : Service() {
                 else VibrationEffect.createOneShot(120, VibrationEffect.DEFAULT_AMPLITUDE)
                 @Suppress("DEPRECATION")
                 vibrator.vibrate(effect, AlarmAudio)
+                traceBackup("vibration requested")
             }
-        }
+        }.onFailure { traceBackup("vibration error ${it.javaClass.simpleName}") }
         try {
             val next = MediaPlayer.create(
                 this,
@@ -276,7 +320,9 @@ internal class TripService : Service() {
                 true
             }
             next.start()
-        } catch (_: RuntimeException) {
+            traceBackup("audio started loop=$loop")
+        } catch (error: RuntimeException) {
+            traceBackup("audio error ${error.javaClass.simpleName}")
             releasePlayer()
         }
     }
@@ -287,17 +333,46 @@ internal class TripService : Service() {
         vibrator.cancel()
     }
 
-    private fun releaseBackupWakeLock() {
-        backupWakeLock?.let { if (it.isHeld) it.release() }
-        backupWakeLock = null
+    private fun scheduleBackup(deadline: Long) {
+        var exact = false
+        if (Build.VERSION.SDK_INT < 31 || alarms.canScheduleExactAlarms()) {
+            try {
+                val trigger = backupWallClockTrigger(deadline, SystemClock.elapsedRealtime(), System.currentTimeMillis())
+                alarms.setAlarmClock(AlarmManager.AlarmClockInfo(trigger, viewTrip), backupOperation)
+                exact = true
+            } catch (_: SecurityException) {
+                // Access can change while the draft is being started. Show reduced capability.
+            }
+        }
+        if (!exact) alarms.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, deadline, backupOperation)
+        backupExactScheduled = exact
+        traceBackup("alarm scheduled exact=$exact deadline=$deadline")
+    }
+
+    private fun acceptBackupDeadline() {
+        traceBackup("manifest deadline handled live=${session != null}")
+        val deadline = backupDeadline
+        if (deadline != null && SystemClock.elapsedRealtime() < deadline) {
+            // A wall-clock adjustment or stale callback must not shorten the countdown.
+            scheduleBackup(deadline)
+            return
+        }
+        session?.onTime(SystemClock.elapsedRealtime())
+        publish()
+    }
+
+    private fun cancelBackup() {
+        if (backupDeadline != null) traceBackup("alarm cancelled")
+        if (backupDeadline != null) alarms.cancel(backupOperation)
         backupDeadline = null
     }
 
     override fun onDestroy() {
+        if (liveService.get() === this) liveService.clear()
         handler.removeCallbacks(tick)
-        unregisterReceiver(screenState)
+        unregisterReceiver(tripEvents)
         locations.removeUpdates(listener)
-        releaseBackupWakeLock()
+        cancelBackup()
         releasePlayer()
         notifications.cancel(AlarmNotificationId)
         if (foreground) stopForeground(STOP_FOREGROUND_REMOVE)
@@ -411,6 +486,12 @@ internal class TripService : Service() {
         private const val StartAction = "com.dlucx.para.START_TRIP"
         private const val KeepTrackingAction = "com.dlucx.para.KEEP_TRACKING"
         private const val EndAction = "com.dlucx.para.END_TRIP"
+        internal const val BackupAction = "com.dlucx.para.BACKUP_DEADLINE"
+        private var liveService = WeakReference<TripService>(null)
+
+        internal fun deliverBackupDeadline() {
+            liveService.get()?.acceptBackupDeadline()
+        }
         internal const val TrackingChannel = "para_trip_tracking"
         internal const val AlarmChannel = "para_trip_alarm"
         private const val TrackingNotificationId = 101

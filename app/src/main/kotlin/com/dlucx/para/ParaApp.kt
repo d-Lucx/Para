@@ -502,6 +502,7 @@ private fun TripSettings(preferences: SharedPreferences, permissions: TripPermis
             PermissionButton(R.string.precise_location, permissions.preciseLocation, context::openParaAppSettings)
             PermissionButton(R.string.trip_notifications, permissions.notifications, context::openParaNotificationSettings)
             PermissionButton(R.string.lock_screen_alerts, permissions.lockScreenAlerts, context::openParaLockScreenSettings)
+            PermissionButton(R.string.backup_alarm_access, permissions.exactAlarms, context::openParaBackupAlarmSettings)
             Row(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
                     .toggleable(showDetails, role = Role.Switch) {

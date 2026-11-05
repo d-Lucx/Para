@@ -13,5 +13,6 @@
     <string name="trip_distance_km">%1$.1f km remaining</string>
     <string name="trip_destination_distance">%1$s · %2$s</string>
     <string name="trip_backup_invalid">Edit the destination and set the backup timer to 1–1,440 minutes.</string>
+    <string name="backup_alarm_access">Alarms &amp; reminders</string>
     <string name="trip_start_failed">Para couldn’t start the trip. Check that location services and precise location are enabled.</string>
 </resources>

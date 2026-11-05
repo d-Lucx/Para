@@ -220,6 +220,10 @@ private fun GpsStatus(snapshot: TripSnapshot, color: Color) {
         ) {
             Text(if (snapshot.backupTimerActive) "Backup timer is running." else "No backup timer is running.")
         }
+        if (snapshot.backupTimerActive && !snapshot.backupTimerExact) {
+            Text("The backup timer may be delayed while your phone is asleep. Allow Alarms & reminders for precise timing.")
+            TextButton(onClick = context::openParaBackupAlarmSettings) { Text("Open alarms & reminders") }
+        }
     }
 }
 

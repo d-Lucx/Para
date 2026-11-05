@@ -20,6 +20,7 @@ internal data class TripSnapshot(
     val recordedDistanceMeters: Double,
     val backupTimerActive: Boolean = false,
     val gpsProviderEnabled: Boolean = true,
+    val backupTimerExact: Boolean = true,
 )
 
 internal data class TripPoint(val latitude: Double, val longitude: Double, val fixMillis: Long)

@@ -2,6 +2,7 @@ package com.dlucx.para
 
 import android.Manifest
 import android.app.NotificationManager
+import android.app.AlarmManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -33,6 +34,7 @@ internal data class TripPermissions(
     val notifications: Boolean,
     val lockScreenAlerts: Boolean,
     val batteryOptimizationsIgnored: Boolean = false,
+    val exactAlarms: Boolean = false,
 )
 
 internal fun Context.readTripPermissions(): TripPermissions {
@@ -47,7 +49,19 @@ internal fun Context.readTripPermissions(): TripPermissions {
         lockScreenAlerts = (Build.VERSION.SDK_INT < 34 || manager.canUseFullScreenIntent()) &&
             (alarmChannel == null || alarmChannel.importance >= NotificationManager.IMPORTANCE_HIGH),
         batteryOptimizationsIgnored = getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName),
+        exactAlarms = canScheduleBackupAlarm(),
     )
+}
+
+internal fun Context.canScheduleBackupAlarm(): Boolean = Build.VERSION.SDK_INT < 31 ||
+    getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
+
+internal fun Context.openParaBackupAlarmSettings() {
+    if (Build.VERSION.SDK_INT >= 31) {
+        try {
+            startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.fromParts("package", packageName, null)))
+        } catch (_: ActivityNotFoundException) { openParaAppSettings() }
+    } else openParaAppSettings()
 }
 
 internal fun Context.openParaAppSettings() {
@@ -90,9 +104,10 @@ private enum class TripBlock(val explanation: String, val action: String) {
     Alarm("The alarm notification channel is blocked.", "Open alarm channel"),
     AlarmPriority("The alarm notification channel is below high priority.", "Open alarm channel"),
     FullScreen("Android full-screen alert access for Para is off.", "Open full-screen access"),
+    BackupTiming("Alarms & reminders access is off. The backup timer may be delayed while your phone is asleep.", "Open alarms & reminders"),
 }
 
-private fun Context.tripBlocks(): List<TripBlock> {
+private fun Context.tripBlocks(backupConfigured: Boolean = false): List<TripBlock> {
     val manager = getSystemService(NotificationManager::class.java)
     return buildList {
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -106,6 +121,7 @@ private fun Context.tripBlocks(): List<TripBlock> {
         if (alarm?.importance == NotificationManager.IMPORTANCE_NONE) add(TripBlock.Alarm)
         else if (alarm != null && alarm.importance < NotificationManager.IMPORTANCE_HIGH) add(TripBlock.AlarmPriority)
         if (Build.VERSION.SDK_INT >= 34 && !manager.canUseFullScreenIntent()) add(TripBlock.FullScreen)
+        if (backupConfigured && !canScheduleBackupAlarm()) add(TripBlock.BackupTiming)
     }
 }
 
@@ -117,6 +133,7 @@ private fun Context.fixIntent(block: TripBlock): Intent = when (block) {
         .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
         .putExtra(Settings.EXTRA_CHANNEL_ID, if (block == TripBlock.Tracking) TripService.TrackingChannel else TripService.AlarmChannel)
     TripBlock.FullScreen -> Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.fromParts("package", packageName, null))
+    TripBlock.BackupTiming -> Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.fromParts("package", packageName, null))
 }
 
 @Composable
@@ -135,7 +152,7 @@ internal fun rememberTripStarter(
 
     fun start(acceptLimitedAlerts: Boolean = false) {
         val draft = pending ?: return
-        val current = context.tripBlocks()
+        val current = context.tripBlocks(backupConfigured = draft.backupMinutes != null)
         if (TripBlock.Location in current || (!acceptLimitedAlerts && current.isNotEmpty())) {
             blocks = current
             return
@@ -145,7 +162,7 @@ internal fun rememberTripStarter(
     }
 
     val settings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (pending != null) blocks = context.tripBlocks()
+        pending?.let { blocks = context.tripBlocks(backupConfigured = it.backupMinutes != null) }
     }
     val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { start() }
 
@@ -183,7 +200,7 @@ internal fun rememberTripStarter(
                         }) { Text(block.action) }
                     }
                     if (current.isNotEmpty() && TripBlock.Location !in current) {
-                        Text("Tracking and alarm audio can still run. Android may limit the notification or full-screen alert.")
+                        Text("Tracking and GPS arrival checks can still run. Some alerts may be limited as described above.")
                     }
                 }
             },

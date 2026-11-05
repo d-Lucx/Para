@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
         android:allowBackup="false"
@@ -34,5 +35,6 @@
             android:name=".TripService"
             android:exported="false"
             android:foregroundServiceType="location" />
+        <receiver android:name=".BackupAlarmReceiver" android:exported="false" />
     </application>
 </manifest>
