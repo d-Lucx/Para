@@ -1,0 +1,17 @@
+Tagum–Davao pilot map
+
+Copyright OpenStreetMap contributors
+https://www.openstreetmap.org/copyright
+
+The bundled tagum-davao.pmtiles extract is available under the
+Open Data Commons Open Database License (ODbL) 1.0.
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Source: OpenStreetMap API v0.6 bounding-box extracts.
+The archive contains selected major roads, rivers, coastlines, and place labels
+within 6.99–7.48 N and 125.51–125.89 E. Geometry is clipped to the pilot
+boundary and coordinates are rounded to five decimal places. The data is
+intended for destination selection and does not include every road or place.
+
+Source extract and reproducible tiler: tools/tagum-davao-map.json and
+tools/build-corridor-map.mjs in the Para source tree.

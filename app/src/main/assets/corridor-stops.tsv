@@ -1,0 +1,13 @@
+# Selected pilot stops, ordered from Tagum toward Davao City.
+# © OpenStreetMap contributors. Open Database License 1.0.
+# https://www.openstreetmap.org/copyright
+# https://opendatacommons.org/licenses/odbl/1-0/
+# Columns are OSM type/id, name, locality, latitude, longitude, and optional search aliases.
+way/841643190	Tagum City Overland Transport Integrated Terminal	Tagum City	7.46126	125.79891	TCOTIT bus station
+way/762387719	Pereyras Terminal 1	Tagum City	7.46213	125.79902
+way/145079204	Carmen Transport Terminal	Carmen, Davao del Norte	7.35563	125.70465	Carmen bus station public market
+way/34129005	Panabo City Integrated Bus & Jeepney Terminal	Panabo City	7.29842	125.68021	Panabo bus station
+node/12688667101	Bachelor Express	Panacan, Davao City	7.15625	125.65748	Panacan bus stop
+way/440446297	Mindanao AUV Transport Terminal	Matina, Davao City	7.06024	125.58864
+way/28996131	Davao City Overland Transport Terminal	Ecoland, Davao City	7.05544	125.60087	DCOTT Ecoland bus station
+node/10291371490	Crossing Ecoland	Ecoland, Davao City	7.05320	125.59832	Ecoland bus stop

@@ -1,0 +1,17 @@
+<resources>
+    <string name="trip_tracking_channel">Active trip</string>
+    <string name="trip_alarm_channel">Trip alarms</string>
+    <string name="trip_notification_view">View trip</string>
+    <string name="trip_notification_end">End trip</string>
+    <string name="trip_tracking_notification">Tracking trip</string>
+    <string name="trip_approaching_notification">Approaching destination</string>
+    <string name="trip_gps_waiting">Waiting for GPS</string>
+    <string name="trip_gps_lost">GPS signal lost</string>
+    <string name="trip_arrival_notification">Arrival alarm</string>
+    <string name="trip_backup_notification">Backup timer · arrival not confirmed</string>
+    <string name="trip_distance_m">%1$d m remaining</string>
+    <string name="trip_distance_km">%1$.1f km remaining</string>
+    <string name="trip_destination_distance">%1$s · %2$s</string>
+    <string name="trip_backup_invalid">Edit the destination and set the backup timer to 1–1,440 minutes.</string>
+    <string name="trip_start_failed">Para couldn’t start the trip. Check that location services and precise location are enabled.</string>
+</resources>
