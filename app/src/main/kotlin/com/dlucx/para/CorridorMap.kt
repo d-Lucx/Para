@@ -7,7 +7,6 @@ import android.graphics.PointF
 import android.graphics.RectF
 import android.location.Location
 import android.net.Uri
-import android.util.AtomicFile
 import android.view.MotionEvent
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
@@ -26,6 +25,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -59,7 +59,6 @@ import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
-import java.io.File
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
@@ -95,11 +94,12 @@ internal fun CorridorMap(
 ) {
     val context = LocalContext.current
     val largeText = LocalDensity.current.fontScale > 1.3f
-    val mapData by rememberOfflineMapData()
+    var mapAttempt by remember { mutableIntStateOf(0) }
+    val mapData by rememberOfflineMapData(mapAttempt)
     val loaded = mapData?.getOrNull()
     if (loaded == null) {
         Box(modifier, contentAlignment = Alignment.Center) {
-            Text(if (mapData == null) "Opening offline map…" else "Offline map unavailable")
+            OfflineMapPreparation(mapData == null) { mapAttempt++ }
         }
         return
     }
@@ -113,25 +113,16 @@ internal fun CorridorMap(
             }
         })
     }
-    val archive by produceState<Result<Pair<String, List<StreetPack>>>?>(null, context.applicationContext) {
+    val archive by produceState<Result<Pair<String, List<StreetPack>>>?>(null, context.applicationContext, mapAttempt) {
+        value = null
         value = withContext(Dispatchers.IO) {
             runCatching {
-                val file = File(context.noBackupFilesDir, "tagum-davao-649790e3.pmtiles")
                 val asset = "tagum-davao.pmtiles"
                 val expectedLength = context.assets.openFd(asset).use { it.length }
-                if (file.length() != expectedLength) {
-                    val atomic = AtomicFile(file)
-                    val output = atomic.startWrite()
-                    try {
-                        context.assets.open(asset).use { input ->
-                            check(input.copyTo(output) == expectedLength)
-                        }
-                        atomic.finishWrite(output)
-                    } catch (failure: Exception) {
-                        atomic.failWrite(output)
-                        throw failure
-                    }
-                }
+                val file = context.offlineAssetFile(
+                    asset, "tagum-davao-649790e3.pmtiles", expectedLength,
+                    "649790e3f6fa5d1272192d99c90cb81999b7eafb7cab7d61314bd76fdca7c658",
+                )
                 ("pmtiles://" + Uri.fromFile(file)) to StreetMaps.load(context.applicationContext)
             }
         }
@@ -139,7 +130,7 @@ internal fun CorridorMap(
     val archives = archive?.getOrNull()
     if (archives == null) {
         Box(modifier, contentAlignment = Alignment.Center) {
-            Text(if (archive == null) "Opening offline map…" else "Offline map unavailable")
+            OfflineMapPreparation(archive == null) { mapAttempt++ }
         }
         return
     }

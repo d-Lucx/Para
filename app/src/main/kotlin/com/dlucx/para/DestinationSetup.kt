@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -64,13 +65,14 @@ internal fun DestinationSetup(
     onTestAlarm: () -> Unit,
     onStartTrip: (DestinationDraft) -> Unit,
 ) {
-    val mapData by rememberOfflineMapData()
+    var mapAttempt by remember { mutableIntStateOf(0) }
+    val mapData by rememberOfflineMapData(mapAttempt)
     val loaded = mapData?.getOrNull()
     if (loaded == null) {
         BackHandler(onBack = onBack)
         Scaffold(topBar = { ParaHeader("Destination setup", onBack = onBack) }) { insets ->
             Box(Modifier.fillMaxSize().padding(insets), contentAlignment = Alignment.Center) {
-                Text(if (mapData == null) "Opening offline maps…" else "Offline maps unavailable. Reopen destination setup to retry.")
+                OfflineMapPreparation(mapData == null) { mapAttempt++ }
             }
         }
         return

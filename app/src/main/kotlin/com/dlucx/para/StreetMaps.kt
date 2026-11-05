@@ -2,10 +2,7 @@ package com.dlucx.para
 
 import android.content.Context
 import android.net.Uri
-import android.util.AtomicFile
 import org.json.JSONArray
-import java.io.File
-import java.security.MessageDigest
 
 internal data class StreetPack(val id: String, val url: String)
 
@@ -23,32 +20,10 @@ internal object StreetMaps {
             val item = index.getJSONObject(position)
             val hash = item.getString("sha256")
             val id = item.getString("id")
-            val file = File(context.noBackupFilesDir, "streets-$id-${hash.take(12)}.pmtiles")
-            val expected = item.getLong("bytes")
-            if (file.length() != expected) {
-                val atomic = AtomicFile(file)
-                val output = atomic.startWrite()
-                try {
-                    val digest = MessageDigest.getInstance("SHA-256")
-                    context.assets.open("streets/${item.getString("file")}").use { input ->
-                        val buffer = ByteArray(64 * 1024)
-                        var total = 0L
-                        while (true) {
-                            val count = input.read(buffer)
-                            if (count < 0) break
-                            output.write(buffer, 0, count)
-                            digest.update(buffer, 0, count)
-                            total += count
-                        }
-                        check(total == expected)
-                    }
-                    check(digest.digest().joinToString("") { "%02x".format(it) } == hash)
-                    atomic.finishWrite(output)
-                } catch (failure: Exception) {
-                    atomic.failWrite(output)
-                    throw failure
-                }
-            }
+            val file = context.offlineAssetFile(
+                "streets/${item.getString("file")}", "streets-$id-${hash.take(12)}.pmtiles",
+                item.getLong("bytes"), hash,
+            )
             StreetPack(id, "pmtiles://" + Uri.fromFile(file))
         }
         val currentNames = packs.map { Uri.parse(it.url.removePrefix("pmtiles://")).lastPathSegment }.toSet()

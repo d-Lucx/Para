@@ -1,13 +1,21 @@
 package com.dlucx.para
 
 import android.content.Context
+import android.annotation.SuppressLint
+import android.content.pm.ApplicationInfo
+import android.os.SystemClock
 import android.util.AtomicFile
+import android.util.Log
 import java.io.File
 import java.security.MessageDigest
 
-internal fun Context.offlineAssetFile(asset: String, name: String, expected: Long, hash: String): File {
+private val offlineAssetLock = Any()
+
+@SuppressLint("LogNotTimber") // ADB reads this debug-only metric directly.
+internal fun Context.offlineAssetFile(asset: String, name: String, expected: Long, hash: String): File = synchronized(offlineAssetLock) {
     val file = File(noBackupFilesDir, name)
-    if (file.length() != expected) {
+    if (!file.isFile || file.length() != expected) {
+        val started = SystemClock.elapsedRealtime()
         val atomic = AtomicFile(file)
         val output = atomic.startWrite()
         try {
@@ -30,6 +38,10 @@ internal fun Context.offlineAssetFile(asset: String, name: String, expected: Lon
             atomic.failWrite(output)
             throw failure
         }
+        check(file.isFile && file.length() == expected) { "Could not publish offline asset $asset" }
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            Log.i("ParaMapPerf", "copy asset=$asset bytes=$expected ms=${SystemClock.elapsedRealtime() - started}")
+        }
     }
-    return file
+    file
 }

@@ -4,6 +4,8 @@ Use the current debug APK and your Infinix X6852. Record the phone model, Androi
 
 ## 1. Offline map and stop search
 
+For a fresh-copy benchmark, build a separate debug app with `./gradlew.bat :app:assembleDebug -PparaMapBenchmark=true`. Copy the output APK to a benchmark filename before rebuilding the standard APK. Install the benchmark package `com.dlucx.para.mapbench` and launch `com.dlucx.para.mapbench/com.dlucx.para.MainActivity`. Open **Set destination** in airplane mode with Wi-Fi off. The debug log tag `ParaMapPerf` records bytes and milliseconds per copied asset. Reopen setup in the same process and check for additional copies. Remove the benchmark package when finished and restore connectivity.
+
 ### Pilot detail and landmark confirmation
 
 With the pilot-detail build installed, perform these checks in airplane mode with Wi-Fi off. Keep existing saved destinations and history; use a spare profile/device for destructive fresh-install checks.

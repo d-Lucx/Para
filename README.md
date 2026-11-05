@@ -24,6 +24,8 @@ The additional archive contains 217,878 building areas and occupies 19.4 MiB. Al
 
 The catalog label optimization uses bundled glyphs for nationwide and pilot-stop names. In a focused Infinix comparison, median app PSS was 8.5 MiB lower across three map openings per build. The samples varied between openings. See the [measurement record](<docs/Para Map Improvement Plan.md#catalog-label-rendering>).
 
+First use prepares 183.5 MiB of local map and search files. If preparation fails, use **Retry offline maps** after resolving the storage problem. The isolated Infinix test recovered both a pilot archive and a regional archive in place. See the [copy and recovery results](<docs/Para Map Improvement Plan.md#first-use-preparation-and-copy-recovery>).
+
 ## Build and verify
 
 Use JDK 17, Android SDK Platform 37, Android platform-tools, and the repository's Gradle wrapper (Gradle 9.6.0). Android Studio can install the SDK components. The app supports Android 8.0 / API 26 and newer.

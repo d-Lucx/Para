@@ -87,6 +87,14 @@ Median PSS was 8,727 KiB lower, about 3.4%. The ranges overlap. Keep first-copy 
 
 On the optimized build, tapping the rendered Manila label opened destination confirmation and the map displayed the ñ in Las Piñas. Both checks ran offline. The Infinix is running the optimized APK and its original connectivity settings were restored.
 
+#### First-use preparation and copy recovery
+
+An isolated debug install on the Infinix X6852 opened the nationwide map in airplane mode with Wi-Fi off. Debug logs recorded 21 first-use copies totaling 192,361,952 bytes (183.5 MiB), with 797 ms summed across copy, hash and publication operations. The isolated app's `no_backup` directory occupied 188,072 KiB. Reopening setup in the same process produced zero additional copies.
+
+An ADB accessibility probe observed map attribution 8.56 seconds after the fresh setup tap and 3.44 seconds after the warm tap. These are single observations that include accessibility dump overhead. Measure native first-frame and pan/zoom timing separately.
+
+We simulated a write-open failure by placing a directory at the AtomicFile temporary path, once for the pilot archive and once for a regional archive. Each failure surfaced **Retry offline maps**. After removing the obstruction, retry recovered in the same screen and the replacement file matched the bundled SHA-256. The isolated app was removed and the phone settings were restored. A mid-copy failure on a full volume remains open.
+
 ## Acceptance gates
 
 - [x] Confirm pilot map/landmark-sheet designs against approved Para styling before production UI changes. User selected “Approve and implement.”

@@ -18,6 +18,9 @@ android {
     buildFeatures {
         compose = true
     }
+    if (providers.gradleProperty("paraMapBenchmark").orNull == "true") {
+        buildTypes.getByName("debug").applicationIdSuffix = ".mapbench"
+    }
     androidResources {
         noCompress += "pmtiles"
     }

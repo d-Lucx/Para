@@ -87,6 +87,8 @@ Scope and Organic Maps references are recorded in the [map improvement plan](<Pa
 - [x] Verify the final 200% text layout on the Infinix. The map, source credits and all three pin actions are visible. Full TalkBack and Switch Access checks remain open.
 - [ ] Preserve unsaved setup drafts across rotation/font-scale configuration changes without persisting raw locations in an unencrypted saved-state bundle. Current selection-flow retention does not cover activity recreation.
 - [x] Remove per-name bitmap creation for the 412 nationwide and pilot-stop catalog names. Compare three offline Infinix PSS samples per build. The median was 8.5 MiB lower in this run and the ranges overlap. See the [measurement record](<Para Map Improvement Plan.md#catalog-label-rendering>).
-- [ ] Measure first-copy and warm map readiness, frame times, search latency, low-storage recovery, Play delivery size and memory on a second device. Verify accessibility and screen-off GPS/alarm behavior on physical rides.
+- [x] Measure fresh copies and warm reuse in the isolated Infinix debug install. The app copied 183.5 MiB in 797 ms summed across 21 files. Warm reopen copied zero files.
+- [x] Simulate a write-open failure for a pilot archive and a regional archive. Verify in-place retry and the restored SHA-256 for both files.
+- [ ] Measure native map-ready and frame times, search latency, mid-copy failure on a full volume, Play delivery size and memory on a second device. Verify accessibility and screen-off GPS/alarm behavior on physical rides.
 
 Route previews, turn-by-turn navigation, downloadable maps, typo-tolerant search, category browsing and track export require later decisions.
