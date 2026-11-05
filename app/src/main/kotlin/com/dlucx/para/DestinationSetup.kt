@@ -116,13 +116,21 @@ internal fun DestinationSetup(
     BackHandler(onBack = onBack)
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { ParaHeader("Destination setup", badge = "OFFLINE", onBack = onBack) },
+        topBar = { ParaHeader("Destination setup", onBack = onBack) },
         bottomBar = {
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
-                Row(
+                Column(
                     Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    val radius = if (orderedRings) "Arrival radius: $arrivalMeters m" else "Check alert radii"
+                    val timer = when {
+                        !backupEnabled -> "Backup timer off"
+                        backup == null -> "Enter a backup time"
+                        else -> "Backup timer: $backup min"
+                    }
+                    Text("$radius · $timer", style = MaterialTheme.typography.bodySmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onTestAlarm, Modifier.weight(1f).heightIn(min = 48.dp), shape = MaterialTheme.shapes.medium) {
                         Text("Test alarm")
                     }
@@ -132,12 +140,13 @@ internal fun DestinationSetup(
                         modifier = Modifier.weight(1.2f).heightIn(min = 48.dp),
                         shape = MaterialTheme.shapes.medium,
                     ) { Text("Start trip") }
+                    }
                 }
             }
         },
     ) { insets ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(insets).imePadding()
+            modifier = Modifier.fillMaxSize().padding(insets)
                 .verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

@@ -4,6 +4,8 @@ Review date: November 4, 2026. Scope: Android app and Google Play production rea
 
 **Decision: Hold public release.** The existing build and one-device smoke results make Para a candidate for a supervised Tagum–Davao pilot. Production sign-off needs evidence that the app can wake a rider at the right time with the screen locked, a tested signed release, and completed Play Console requirements.
 
+Follow-up: The six UI findings have implementation changes. The Infinix smoke test passed coordinate entry, the setup summary, GPS-off guidance, the fixed overview actions and discard confirmation, and full-screen access repair with draft retention. Four Gradle trip regression tests pass. The acceptance checklist records the accessibility, ride, and release checks that remain open.
+
 ## Evidence
 
 | Area | Result |

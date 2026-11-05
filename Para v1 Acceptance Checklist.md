@@ -45,6 +45,9 @@ Use the [Para v1 device verification guide](<Para Device Verification Guide.md>)
 - [x] Implement System, Light, and Dark appearance and the Stitch layout hierarchy for setup and live-trip screens, including explicit GPS and alert state labels. Settings includes alarm testing, permission status, and lock-screen privacy.
 - [x] Apply the approved Stitch light and dark styles in native Compose across Home, destination setup, active trip, arrival, trip overview, History, and Settings. Bundle Inter and JetBrains Mono for offline rendering. On the Infinix X6852, verify theme switching, offline stop selection, the fixed Start trip action, live trip telemetry, End trip confirmation, overview rendering, and History navigation.
 - [ ] Verify an offline Tagum–Davao pilot ride end to end on physical Android devices, including first fix, screen-off tracking, alert priority and dismissal, recovery, and saved history.
-- [ ] Verify the TalkBack coordinate picker, individual settings repair and draft retention, and the fixed overview actions and Back confirmation on a physical device.
+- [ ] Verify the coordinate picker with TalkBack and Switch Access. Check the setup footer and overview actions at 200% font size, and test the notification-denied and blocked-channel variants of the settings repair flow.
+- [x] On the Infinix X6852, enter a custom destination through the coordinate form, verify the arrival radius and backup timer in the setup footer, and check the location-off guidance during a trip. Verify Save trip and Discard are visible and Back asks before discarding.
+- [x] On the Infinix X6852, temporarily block full-screen alert access. Verify Para identifies the block, opens Android's full-screen settings, rechecks access on return, and retains the custom destination and trip settings.
+- [x] Run the Gradle trip regression tests for backup timing, arrival priority, one-time approach, stale fixes, and GPS gaps. The tests also cover breaking the path when the GPS provider is turned off.
 
 Dead reckoning, speed-scaled zones, automatic speaker escalation, and iOS are deferred.

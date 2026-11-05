@@ -81,9 +81,12 @@ internal class TripService : Service() {
             publish(playApproach)
         }
 
-        override fun onProviderEnabled(provider: String) = Unit
+        override fun onProviderEnabled(provider: String) = publish()
 
-        override fun onProviderDisabled(provider: String) = Unit
+        override fun onProviderDisabled(provider: String) {
+            session?.onGpsUnavailable()
+            publish()
+        }
 
         @Deprecated("Required on Android versions before API 29")
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
@@ -188,7 +191,10 @@ internal class TripService : Service() {
     }
 
     private fun publish(playApproach: Boolean = false) {
-        val snapshot = session?.snapshot() ?: return
+        val trip = session ?: return
+        val gpsEnabled = locations.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        if (!gpsEnabled) trip.onGpsUnavailable()
+        val snapshot = trip.snapshot().copy(gpsProviderEnabled = gpsEnabled)
         val alert = snapshot.alert
         mutableState.value = snapshot
         val previous = currentAlert

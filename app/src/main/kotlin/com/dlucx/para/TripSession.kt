@@ -18,6 +18,8 @@ internal data class TripSnapshot(
     val elapsedMillis: Long,
     val alert: TripAlert?,
     val recordedDistanceMeters: Double,
+    val backupTimerActive: Boolean = false,
+    val gpsProviderEnabled: Boolean = true,
 )
 
 internal data class TripPoint(val latitude: Double, val longitude: Double, val fixMillis: Long)
@@ -101,6 +103,10 @@ internal class TripSession(val destination: DestinationDraft, private val starte
         if (alert == TripAlert.Backup) alert = null
     }
 
+    fun onGpsUnavailable() {
+        remainingMeters = null
+    }
+
     fun snapshot(): TripSnapshot {
         val distance = remainingMeters
         val status = when {
@@ -116,6 +122,7 @@ internal class TripSession(val destination: DestinationDraft, private val starte
             elapsedMillis = observedMillis - startedAtMillis,
             alert = alert,
             recordedDistanceMeters = recordedDistanceMeters,
+            backupTimerActive = backupDelayMillis != null && !backupFired && alert != TripAlert.Arrival,
         )
     }
 

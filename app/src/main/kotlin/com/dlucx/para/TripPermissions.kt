@@ -171,6 +171,9 @@ internal fun rememberTripStarter(
                             }
                         }) { Text(block.action) }
                     }
+                    if (current.isNotEmpty() && TripBlock.Location !in current) {
+                        Text("Tracking and alarm audio can still run. Android may limit the notification or full-screen alert.")
+                    }
                 }
             },
             confirmButton = {

@@ -282,7 +282,7 @@ internal fun ParaApp(
                         Page.History -> "On-device encrypted storage"
                         Page.Settings -> "Preferences & audio"
                     },
-                    badge = if (page == Page.History) "LOCAL" else "OFFLINE",
+                    badge = if (page == Page.History) "LOCAL" else null,
                 )
             },
             bottomBar = {
@@ -295,6 +295,9 @@ internal fun ParaApp(
                             colors = NavigationBarItemDefaults.colors(
                                 indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                                 selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             ),
                             label = { Text(stringResource(destination.label)) },
                         )
@@ -312,7 +315,7 @@ internal fun ParaApp(
                 when (page) {
                     Page.Home -> {
                         ParaPanel {
-                            ParaBadge("BUNDLED MAP", highlighted = true)
+                            ParaBadge("Map available offline", highlighted = true)
                             Text("Tagum–Davao map pack", style = MaterialTheme.typography.titleLarge)
                             Text("Search eight bundled stops or place a pin without an internet connection.")
                         }

@@ -1,5 +1,8 @@
 package com.dlucx.para
 
+import android.content.Intent
+import android.provider.Settings
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -83,7 +87,7 @@ internal fun ActiveTrip(
 
     Scaffold(
         containerColor = colors.background,
-        topBar = { ParaHeader(if (arrival) "Arrival alarm" else "Active trip", badge = "OFFLINE") },
+        topBar = { ParaHeader(if (arrival) "Arrival alarm" else "Active trip") },
     ) { insets ->
         Column(
             modifier = Modifier.fillMaxSize().padding(insets)
@@ -91,7 +95,7 @@ internal fun ActiveTrip(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (arrival) ArrivalBanner()
-            if (!arrival && snapshot.alert == null) GpsStatus(snapshot.status, statusColor)
+            if (!arrival && snapshot.alert == null) GpsStatus(snapshot, statusColor)
             if (showDestinationDetails) {
                 ParaPanel {
                     ParaBadge("DESIGNATED STOP")
@@ -187,8 +191,11 @@ private fun TripMetrics(snapshot: TripSnapshot) {
 }
 
 @Composable
-private fun GpsStatus(status: TripStatus, color: Color) {
-    val (title, description) = when (status) {
+private fun GpsStatus(snapshot: TripSnapshot, color: Color) {
+    val context = LocalContext.current
+    val (title, description) = if (!snapshot.gpsProviderEnabled) {
+        "Device location is off" to "Turn on device location so Para can check when you arrive."
+    } else when (snapshot.status) {
         TripStatus.WaitingForGps -> "Waiting for GPS" to
             "Para will check your distance when it gets a usable fix."
         TripStatus.Tracking -> "Tracking" to "Checking your distance to the destination."
@@ -197,8 +204,22 @@ private fun GpsStatus(status: TripStatus, color: Color) {
         TripStatus.Approaching -> "Approaching destination" to "You’re within the approach zone."
     }
     ParaPanel(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-            Text(title, style = MaterialTheme.typography.titleLarge, color = color)
-            Text(description)
+        Text(title, style = MaterialTheme.typography.titleLarge, color = color)
+        Text(description)
+        if (!snapshot.gpsProviderEnabled) {
+            TextButton(onClick = { context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }) {
+                Text("Open location settings")
+            }
+        } else if (snapshot.status == TripStatus.GpsSignalLost ||
+            (snapshot.status == TripStatus.WaitingForGps && snapshot.elapsedMillis >= 20_000)
+        ) {
+            Text("If it’s safe, move near a window or into a more open area.")
+        }
+        if (snapshot.status == TripStatus.WaitingForGps || snapshot.status == TripStatus.GpsSignalLost ||
+            !snapshot.gpsProviderEnabled
+        ) {
+            Text(if (snapshot.backupTimerActive) "Backup timer is running." else "No backup timer is running.")
+        }
     }
 }
 
