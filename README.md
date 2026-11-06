@@ -38,6 +38,8 @@ Zoom into Davao Region or open **Settings → Detailed offline maps** to install
 
 The combined download was installed over the earlier packs on the Infinix X6852. The installed hash matched the build, and building detail rendered in Mintal, New Corella, Digos, and Mati after restarting in airplane mode with Wi-Fi off. A regional view confirmed removal of the old Tagum–Davao rectangle.
 
+Detailed downloads cover all 18 Philippine regions. Zoom into a region to see its download offer, or choose it in **Settings → Detailed offline maps**. Para shows the size and asks before downloading. The other 17 packs range from 24.5 MB to 155.3 MB and add mapped building outlines, water, parks and other land use, walking paths, and road detail. [Nationwide map-data release](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06-national-detail).
+
 ## Build and verify
 
 Use JDK 17, Android SDK Platform 37, Android platform-tools, and the repository's Gradle wrapper (Gradle 9.6.0). Android Studio can install the SDK components. The app supports Android 8.0 / API 26 and newer.

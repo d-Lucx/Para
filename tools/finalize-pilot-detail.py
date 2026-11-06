@@ -9,18 +9,20 @@ from collections import Counter
 from pathlib import Path
 import osmium
 
-def features(directory):
+def features(directory, relations_only=False):
     with (directory / 'pilot.geojson').open(encoding='utf8') as stream:
         first = stream.readline()
         if first.strip() != '{"type":"FeatureCollection","features":[':
-            yield from json.loads(first + stream.read())['features']
+            for item in json.loads(first + stream.read())['features']:
+                yield item, None
             return
         for line in stream:
             line = line.strip()
             if line == ']}':
                 return
-            if line:
-                yield json.loads(line.rstrip(','))
+            if line and (not relations_only or '"source_id":"osm:r/' in line):
+                row = line.rstrip(',')
+                yield json.loads(row), row
         raise ValueError(f'Truncated feature collection: {directory}')
 
 
@@ -55,12 +57,13 @@ def normalize(directory, suppressed):
     with staging.open('w', encoding='utf8') as stream:
         stream.write('{"type":"FeatureCollection","features":[\n')
         separator = ''
-        for item in features(directory):
+        for item, row in features(directory):
             props = item['properties']
             layer = props['layer']
             if (props['source_id'], layer) in suppressed:
                 counts['duplicate_member_areas_removed'] += 1
                 continue
+            needs_rewrite = item['geometry']['type'] == 'GeometryCollection'
             if not renderable(item):
                 counts['non_renderable_geometry_removed'] += 1
                 continue
@@ -73,7 +76,9 @@ def normalize(directory, suppressed):
                 counts['polygon_holes'] += sum(len(polygon) - 1 for polygon in polygons)
             counts[layer] += 1
             stream.write(separator)
-            stream.write(json.dumps(item, separators=(',', ':'), ensure_ascii=False))
+            if row is None or needs_rewrite:
+                row = json.dumps(item, separators=(',', ':'), ensure_ascii=False)
+            stream.write(row)
             separator = ',\n'
         stream.write('\n]}')
     staging.replace(target)
@@ -90,7 +95,7 @@ def main():
     relations = {}
     suppressed = {directory: set() for directory in directories}
     for directory in directories:
-        for item in features(directory):
+        for item, _ in features(directory, relations_only=True):
             props = item['properties']
             source_id = props['source_id']
             if source_id.startswith('osm:r/'):

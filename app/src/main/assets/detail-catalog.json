@@ -61,6 +61,329 @@
         "davao-west",
         "tagum-north"
       ]
+    },
+    {
+      "id": "region-100000000",
+      "name": "Region I (Ilocos Region)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        119.74972,
+        15.61777,
+        120.97645,
+        18.65101
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-100000000-2026-11-06-national-detail.zip",
+      "bytes": 53180040,
+      "sha256": "b0e0a44cb79d23198215dad1da01bd709a0b46fb4adcf85448cd0a33b3299ef4",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 9173,
+      "tiles": 36836,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-200000000",
+      "name": "Region II (Cagayan Valley)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        120.76897,
+        15.75442,
+        122.52784,
+        21.12173
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-200000000-2026-11-06-national-detail.zip",
+      "bytes": 75226947,
+      "sha256": "03039469e141c051b40a5bd4628bde2454c5c3f26005de610b20adc05fafaf54",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 5076,
+      "tiles": 59212,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-300000000",
+      "name": "Region III (Central Luzon)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        119.78583,
+        14.40805,
+        122.24294,
+        16.50925
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-300000000-2026-11-06-national-detail.zip",
+      "bytes": 155260855,
+      "sha256": "989bbecf3f9906db4777a860814ca2f21bc5e9e057ba64cad1212e860e272a96",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 19694,
+      "tiles": 53799,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-400000000",
+      "name": "Region IV-A (CALABARZON)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        120.48686,
+        13.16209,
+        122.79252,
+        15.21689
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-400000000-2026-11-06-national-detail.zip",
+      "bytes": 147616729,
+      "sha256": "dcff015ec2fe43134c2bbff5edaa6119f0c9525bb8d87539a136b33cc98dc981",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 22907,
+      "tiles": 45955,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-500000000",
+      "name": "Region V (Bicol Region)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        122.29877,
+        11.72048,
+        124.42122,
+        14.50056
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-500000000-2026-11-06-national-detail.zip",
+      "bytes": 56010124,
+      "sha256": "865d3e9244e5879abcf1c03eaad18ac62f8e702dea32d8e67c54474d6043d8a6",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 7809,
+      "tiles": 48181,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-600000000",
+      "name": "Region VI (Western Visayas)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        121.2833,
+        10.38612,
+        123.35985,
+        12.20705
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-600000000-2026-11-06-national-detail.zip",
+      "bytes": 52983838,
+      "sha256": "17ff62d017e482e4f9089fb7aa23f8cc1e054f9ca2710ea74a8a0cd134936548",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 8084,
+      "tiles": 37379,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-700000000",
+      "name": "Region VII (Central Visayas)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        123.2964,
+        9.41289,
+        124.64537,
+        11.52388
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-700000000-2026-11-06-national-detail.zip",
+      "bytes": 51148854,
+      "sha256": "8c39203e30a1e64bf4fc429a051453759b3a2474b8a98bbc0e243e1ecf35234d",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 10959,
+      "tiles": 31851,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-800000000",
+      "name": "Region VIII (Eastern Visayas)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        124.00305,
+        9.89522,
+        125.96915,
+        12.69645
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-800000000-2026-11-06-national-detail.zip",
+      "bytes": 67447566,
+      "sha256": "0cb0735464665dbd3ec5bf7ef2e07f328600fe9934fc17b554f783193e5eae04",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 9046,
+      "tiles": 64837,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-900000000",
+      "name": "Region IX (Zamboanga Peninsula)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        119.91933,
+        5.44368,
+        123.66622,
+        8.86012
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-900000000-2026-11-06-national-detail.zip",
+      "bytes": 32389232,
+      "sha256": "791c86a025b561a215a8d2586f8c2e945afd491953417e2dd92cc84f1ff58724",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 4589,
+      "tiles": 38252,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-1000000000",
+      "name": "Region X (Northern Mindanao)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        123.55383,
+        7.40094,
+        125.44139,
+        9.25801
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-1000000000-2026-11-06-national-detail.zip",
+      "bytes": 58830111,
+      "sha256": "fe8489d6cd9a9fbfd2dd496cda090478728aeb6881081d36c271269975bfb915",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 6832,
+      "tiles": 49393,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-1200000000",
+      "name": "Region XII (SOCCSKSARGEN)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        124.01602,
+        5.56864,
+        125.53857,
+        7.63829
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-1200000000-2026-11-06-national-detail.zip",
+      "bytes": 53077340,
+      "sha256": "1dd4276211e841b28f680f0631bcec07d30390b9c348d2c1e6d7f3867d6b4518",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 4341,
+      "tiles": 44747,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-1300000000",
+      "name": "National Capital Region (NCR)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        120.90647,
+        14.35182,
+        121.13497,
+        14.78503
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-1300000000-2026-11-06-national-detail.zip",
+      "bytes": 78946271,
+      "sha256": "b6428589e6ab1dd186dcd632ba90c338c12e2a6621835c2ec9a305eda269cd07",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 29371,
+      "tiles": 2644,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-1400000000",
+      "name": "Cordillera Administrative Region (CAR)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        120.44461,
+        16.18062,
+        121.64723,
+        18.54409
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-1400000000-2026-11-06-national-detail.zip",
+      "bytes": 35192406,
+      "sha256": "50641bb1e0fe52d459e7f468120d35db3b668188a1f6b578f36d4d75e3325a77",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 5347,
+      "tiles": 35278,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-1600000000",
+      "name": "Region XIII (Caraga)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        125.16985,
+        7.91881,
+        126.45956,
+        10.47159
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-1600000000-2026-11-06-national-detail.zip",
+      "bytes": 29538163,
+      "sha256": "c4c9a0825509938d179523457119519627c6ecb5fbefb3260ea6fc91d7c2e4d2",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 4315,
+      "tiles": 35386,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-1700000000",
+      "name": "MIMAROPA Region",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        114.28153,
+        7.50663,
+        122.69865,
+        13.89899
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-1700000000-2026-11-06-national-detail.zip",
+      "bytes": 35052871,
+      "sha256": "28790820c277c19ab52a94f60ab759706f34c0cd49fd300b22921553138ec301",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 5227,
+      "tiles": 59054,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-1800000000",
+      "name": "Negros Island Region (NIR)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        122.36521,
+        9.03846,
+        123.70196,
+        11.04393
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-1800000000-2026-11-06-national-detail.zip",
+      "bytes": 43901333,
+      "sha256": "de037ec2674d5d4321ebaff465d74b2d60de1ab32d0d8ce7ec20ebdddf5c9f6f",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 6430,
+      "tiles": 39854,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-1900000000",
+      "name": "Bangsamoro Autonomous Region In Muslim Mindanao (BARMM)",
+      "version": "2026-11-06-national-detail",
+      "bounds": [
+        118.06462,
+        4.5874,
+        125.00774,
+        8.16204
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-national-detail/region-1900000000-2026-11-06-national-detail.zip",
+      "bytes": 24519788,
+      "sha256": "d36ff6e75fabb0f958762631260cf9e3bbc533fcaa35c6fda7b87c8aca1f3d13",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 2134,
+      "tiles": 28203,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
     }
   ]
 }

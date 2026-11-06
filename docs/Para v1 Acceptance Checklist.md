@@ -116,7 +116,9 @@ The [map-first expansion plan](<Para Map-first Expansion Plan.md>) tracks the ap
 - [x] Remove per-name bitmap creation for the 412 nationwide and pilot-stop catalog names. Compare three offline Infinix PSS samples per build. The median was 8.5 MiB lower in this run and the ranges overlap. See the [measurement record](<Para Map Improvement Plan.md#catalog-label-rendering>).
 - [x] Verify the combined Region XI download. Independently decode 43,018 tiles, check all 4,745 search locations against the merged coverage, and verify the public ZIP checksum.
 - [x] Upgrade the Infinix from the earlier Davao downloads. Settings showed one Region XI entry. The installed archive matched the build hash, and street-zoom detail rendered in Mintal, New Corella, Digos and Mati after restarting in airplane mode with Wi-Fi off. The original dashed rectangle was absent at regional zoom. The phone's network settings were restored.
-- [ ] Publish and verify the detailed downloads for the other 17 regions. Check regional suggestions, offline reopening, and seams where installed regions meet.
+- [x] Publish the other 17 regional detail downloads, validate 710,861 tiles and 161,334 indexed place records, and redownload every public ZIP to match its SHA-256.
+- [x] On the Infinix, see all 18 entries in Settings, download Caraga, and match the installed map hash. Reopen offline, inspect buildings in Butuan, and verify the Davao–Agusan National Highway crossing with Caraga and Davao both installed.
+- [ ] Sample zoom-in offers and offline rendering in more regions and check additional borders between installed packs.
 - [x] Measure fresh copies and warm reuse in the isolated Infinix debug install. The app copied 183.5 MiB in 797 ms summed across 21 files. Warm reopen copied zero files.
 - [x] Simulate a write-open failure for a pilot archive and a regional archive. Verify in-place retry and the restored SHA-256 for both files.
 - [ ] Measure native map-ready and frame times, search latency, mid-copy failure on a full volume, Play delivery size and memory on a second device. Verify accessibility and screen-off GPS/alarm behavior on physical rides.

@@ -80,7 +80,7 @@ The Region XI remainder archive contains 37,018 verified tiles, 189,031 building
 
 Run `tools/merge-detail-coverage.py` with the finalized Region XI remainder, Davao West, and Tagum North extracts from the same source snapshot. Retile the merged data and rebuild its search index using the merged coverage. When packaging, pass `--replace region-xi davao-west --replace region-xi tagum-north` along with the previous catalog. This keeps the older coverage available during upgrades and presents a single Davao Region download. The Tagum–Davao starter stays bundled.
 
-The combined ZIP is 41,768,699 bytes and contains 43,018 independently decoded tiles, 270,824 building areas, 12,657 paths, 717 water features, 3,908 land-use areas, 336 landmark–entrance associations, and 4,745 indexed places. The [combined Davao release](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06-rxi-combined) passed an anonymous download and checksum comparison.
+The combined ZIP is 41,768,699 bytes and contains 43,018 independently decoded tiles, 270,824 building areas, 12,657 paths, 717 water features, 3,908 land-use areas, 336 landmark–entrance associations, and 4,745 indexed places. It preserves Davao West's earlier coverage, including a fringe that overlaps the Region XII outline. Both packs use the same source snapshot there. The [combined Davao release](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06-rxi-combined) passed an anonymous download and checksum comparison.
 
 ### Batch for the remaining regions
 
@@ -96,3 +96,7 @@ uv run --python 3.12 --with shapely python tools/build-region-detail-packs.py $d
 ```
 
 Here `$pbf` is the Philippines source extract, `$tooling` contains the Node dependencies, and `$streetIntermediates` contains the nationwide `street-landmarks.tsv`. The batch shares one area extraction and one relation normalization pass. Each region has its own ZIP. Large extracts are tiled in buffered groups that write disjoint tile sets. Partitioned tiling reproduced the combined Davao PMTiles byte for byte. The verifier traverses the PMTiles directory and decodes every stored tile. If packaging stops partway through, rerun the same build with `--resume` to reuse archives that match the staging catalog and source manifest. Publish only after the complete build passes, then verify the public download checksums before updating the app catalog.
+
+The 17-region build produced 710,861 independently decoded tiles and 161,334 indexed place records. The ZIPs total 1,050,322,468 bytes. BARMM is the smallest at 24,519,788 bytes and Central Luzon is the largest at 155,260,855 bytes. The [nationwide map-data release](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06-national-detail) contains the 17 ZIPs and the catalog, which also links to the combined Davao pack.
+
+The Infinix showed all 18 regional entries and installed Caraga with the expected PMTiles hash. With both Davao and Caraga installed, the phone rendered buildings in Butuan and a continuous section of the Davao–Agusan National Highway across the regional border at 7.965989° N, 126.086281° E. The app was restarted with airplane mode on and Wi-Fi off for both checks.
