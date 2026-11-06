@@ -1,5 +1,6 @@
 package com.dlucx.para
 
+import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -115,9 +116,15 @@ internal fun DestinationSetup(
     val arrivalMeters = arrival.toIntOrNull()?.takeIf { it > 0 }
     val orderedRings = approachMeters != null && arrivalMeters != null && approachMeters > arrivalMeters
     val backup = backupMinutes.toIntOrNull()?.takeIf { it in 1..MaxBackupMinutes }
+    val benchmarkSearch = LocalContext.current.isMapBenchmark()
     val results by produceState(emptyList<TransitStop>(), catalog, query) {
         value = if (query.isBlank()) emptyList() else withContext(Dispatchers.Default) {
-            catalog.search(query).take(6)
+            if (benchmarkSearch) {
+                val started = SystemClock.elapsedRealtimeNanos()
+                catalog.search(query).take(6).also {
+                    mapBenchmarkLog("search us=${(SystemClock.elapsedRealtimeNanos() - started) / 1_000} results=${it.size}")
+                }
+            } else catalog.search(query).take(6)
         }
     }
 

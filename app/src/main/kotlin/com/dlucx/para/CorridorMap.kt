@@ -193,6 +193,7 @@ internal fun CorridorMap(
     }
     DisposableEffect(view, mapStyle, readOnly) {
         var active = true
+        var benchmark: MapBenchmark? = null
         var listener: Pair<MapLibreMap, MapLibreMap.OnMapClickListener>? = null
         val failure = MapView.OnDidFailLoadingMapListener { if (active) failed = true }
         view.addOnDidFailLoadingMapListener(failure)
@@ -254,6 +255,7 @@ internal fun CorridorMap(
                 }
                 true
             }
+            if (context.isMapBenchmark()) benchmark = MapBenchmark(view, nativeMap)
             nativeMap.setStyle(Style.Builder().fromJson(mapStyle)) { loaded ->
                 if (!active) return@setStyle
                 val labels = context.assets.open("tagum-davao-place-labels.json")
@@ -275,10 +277,12 @@ internal fun CorridorMap(
                 style = loaded
                 failed = false
                 map = nativeMap
+                benchmark?.stylePopulated()
             }
         }
         onDispose {
             active = false
+            benchmark?.close()
             listener?.let { (nativeMap, click) -> nativeMap.removeOnMapClickListener(click) }
             view.setOnTouchListener(null)
             view.removeOnDidFailLoadingMapListener(failure)
