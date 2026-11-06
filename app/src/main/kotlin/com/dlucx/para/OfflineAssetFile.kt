@@ -24,7 +24,7 @@ internal fun Context.offlineAssetFile(asset: String, name: String, expected: Lon
             assets.open(asset).use { raw ->
                 val buffer = ByteArray(64 * 1024)
                 var total = 0L
-                (if (asset.endsWith(".gz")) GZIPInputStream(raw) else raw).use { input ->
+                (if (asset.endsWith(".gzip")) GZIPInputStream(raw) else raw).use { input ->
                     while (true) {
                         val count = input.read(buffer)
                         if (count < 0) break

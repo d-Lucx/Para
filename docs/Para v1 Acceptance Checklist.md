@@ -83,7 +83,9 @@ The [map-first expansion plan](<Para Map-first Expansion Plan.md>) tracks the ap
 - [x] On the Infinix, **Locate** showed **Waiting for GPS** while the map stayed visible. After switching to Settings and back, Home cleared the request. No usable fix arrived during the smoke test.
 - [ ] Verify live recenter, heading, loss of fix and permission denial on device.
 - [x] Allow a recent approximate position on Home, with an accuracy label and a link to Android location settings when device location is off. Trip arrival still requires a fresh, precise GPS fix.
-- [ ] Verify the approximate Home position on device and confirm it cannot trigger an arrival alarm.
+- [x] Infinix fresh-cache check. The debug APK recreated the 64,815,104-byte SQLite index from its 23.8 MiB bundled gzip asset and returned Polyclinic Davao in search.
+- [x] Infinix Home showed **Approximate location · ±100 m** after tapping **Locate**.
+- [ ] Confirm on a test trip that a reading outside the trip accuracy limit cannot trigger an arrival alarm.
 - [x] Regenerate all 18 bundled street packs with road-reference fallback, forward and reverse one-way tags, and categorized landmarks and signals. Regenerate the matching offline search index.
 - [x] Infinix offline smoke test. Davao displayed food and clinic icons and kept both Polyclinic entrances. Manila displayed the shared road palette, street labels and transit icons.
 - [x] Infinix street-zoom check near Manila City Hall. Opposing one-way arrows, traffic-signal icons and a bank icon rendered.

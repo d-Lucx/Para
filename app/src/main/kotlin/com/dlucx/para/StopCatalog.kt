@@ -81,7 +81,7 @@ internal class StopCatalog private constructor(private val database: SQLiteDatab
         private fun read(context: Context): StopCatalog {
             val metadata = context.assets.open("place-search.json").bufferedReader().use { JSONObject(it.readText()) }
             val hash = metadata.getString("sha256")
-            val file = context.offlineAssetFile("place-search.sqlite.gz", "place-search-${hash.take(12)}.sqlite",
+            val file = context.offlineAssetFile("place-search.sqlite.gzip", "place-search-${hash.take(12)}.sqlite",
                 metadata.getLong("bytes"), hash)
             val catalog = StopCatalog(SQLiteDatabase.openDatabase(file.path, null,
                 SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS))
