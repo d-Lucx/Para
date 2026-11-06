@@ -4,8 +4,8 @@ import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
-import org.maplibre.android.geometry.LatLngBounds
 import java.io.File
 import java.io.InputStream
 import java.net.URL
@@ -21,38 +21,38 @@ internal data class DownloadableDetail(
     val url: String,
     val bytes: Long,
     val sha256: String,
-    val bounds: LatLngBounds,
+    val replaces: Set<String>,
 )
 
 private val packId = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
 private val hashPattern = Regex("[0-9a-f]{64}")
+private const val MaxPackBytes = 256_000_000L
 private val packFiles = setOf(
     "detail.pmtiles", "index.json", "entrances.json", "NOTICE.txt", "place-search.json", "place-search.sqlite.gzip",
 )
 
-internal fun Context.detailCatalog(): List<DownloadableDetail> {
+internal fun Context.detailCatalog(includeSuperseded: Boolean = false): List<DownloadableDetail> {
     val catalog = assets.open("detail-catalog.json").bufferedReader().use { JSONObject(it.readText()) }
     check(catalog.getInt("schema") == 1)
     val packs = catalog.getJSONArray("packs")
-    return List(packs.length()) { index ->
+    val entries = List(packs.length()) { index ->
         val entry = packs.getJSONObject(index)
         check(entry.getInt("mapSchema") == 1 && entry.getInt("searchSchema") == 1)
-        val bounds = entry.getJSONArray("bounds")
+        val replaces = entry.optJSONArray("replaces") ?: JSONArray()
         DownloadableDetail(
             entry.getString("id"), entry.getString("name"), entry.getString("version"),
             entry.getString("url"), entry.getLong("bytes"), entry.getString("sha256"),
-            LatLngBounds.from(bounds.getDouble(3), bounds.getDouble(2), bounds.getDouble(1), bounds.getDouble(0)),
+            List(replaces.length(), replaces::getString).toSet(),
         ).also {
             check(it.id.matches(packId) && it.version.matches(packId))
-            check(it.bytes in 1..100_000_000 && it.sha256.matches(hashPattern))
+            check(it.bytes in 1..MaxPackBytes && it.sha256.matches(hashPattern))
             check(it.url == "https://github.com/d-Lucx/Para/releases/download/map-data-${it.version}/${it.id}-${it.version}.zip")
         }
     }.also { check(it.distinctBy(DownloadableDetail::id).size == it.size) }
+    val superseded = entries.flatMap { it.replaces }.toSet()
+    check(superseded.all { id -> entries.any { it.id == id && it.replaces.isEmpty() } })
+    return if (includeSuperseded) entries else entries.filterNot { it.id in superseded }
 }
-
-internal fun DownloadableDetail.intersects(viewport: LatLngBounds): Boolean =
-    bounds.latitudeSouth <= viewport.latitudeNorth && bounds.latitudeNorth >= viewport.latitudeSouth &&
-        bounds.longitudeWest <= viewport.longitudeEast && bounds.longitudeEast >= viewport.longitudeWest
 
 internal fun Context.isBundled(detail: DownloadableDetail): Boolean = detail.id in assets.list("detail").orEmpty()
 
@@ -69,7 +69,10 @@ internal fun Context.installedDetail(detail: DownloadableDetail, allowOlder: Boo
     return root.listFiles()?.filter { it.name.matches(packId) && it.isCompletePack() }?.maxByOrNull(File::getName)
 }
 
-internal fun Context.removeDetails(detail: DownloadableDetail): Boolean = detailRoot(detail).deleteRecursively()
+internal fun Context.removeDetails(detail: DownloadableDetail): Boolean {
+    val superseded = detailCatalog(includeSuperseded = true).filter { it.id in detail.replaces }
+    return superseded.all { detailRoot(it).deleteRecursively() } && detailRoot(detail).deleteRecursively()
+}
 
 internal suspend fun Context.downloadDetail(detail: DownloadableDetail, progress: (Int) -> Unit) = withContext(Dispatchers.IO) {
     if (installedDetail(detail) != null) return@withContext

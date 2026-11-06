@@ -46,4 +46,21 @@ with tempfile.TemporaryDirectory() as directory:
     region_features = json.loads((region_out / 'pilot.geojson').read_text())['features']
     region_road = next(f for f in region_features if f['properties']['source_id'] == road['properties']['source_id'])
     assert shape(region_road['geometry']).intersection(shape(road['geometry'])).equals(seam)
+    batch = Path(directory) / 'batch'
+    regions = Path(directory) / 'regions'
+    regions.mkdir()
+    entries = []
+    for key, west, east in [('left', 125.45, 125.51), ('right', 125.51, 125.89)]:
+        filename = f'{key}.geojson'
+        entries.append(dict(id=key, name=key, file=filename))
+        polygon = dict(type='Polygon', coordinates=[[[west, 6.99], [east, 6.99], [east, 7.48], [west, 7.48], [west, 6.99]]])
+        (regions / filename).write_text(json.dumps(dict(type='Feature', geometry=polygon)), encoding='utf8')
+    (regions / 'index.json').write_text(json.dumps(entries), encoding='utf8')
+    subprocess.run([sys.executable, str(root / 'extract-pilot-detail.py'), str(root / 'test-fixtures/pilot.osm'),
+        str(batch), '--regions', str(regions)], check=True)
+    subprocess.run([sys.executable, str(root / 'finalize-pilot-detail.py'), str(root / 'test-fixtures/pilot.osm'),
+        str(batch / 'left'), str(batch / 'right')], check=True)
+    left = json.loads((batch / 'left/pilot.geojson').read_text())['features']
+    right = json.loads((batch / 'right/pilot.geojson').read_text())['features']
+    assert left == adjacent_features and right == features, 'Batch and single-area extraction disagree'
 print('PASS pilot relation holes, duplicate handling, boundary entrances, border clipping, access tags and geographic layers')

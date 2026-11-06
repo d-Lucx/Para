@@ -75,3 +75,24 @@ Start with Region XI. Pass `--region-geometry app/src/main/assets/regions/110000
 Use `--coverage-manifest <source.json>` for the matching place index. `--coverage-only` on the extractor can write that coverage before the full geometry pass. Package with `--previous-catalog` to preserve the existing download URLs in a new release catalog. The ZIP publisher independently checks that every indexed place is within the exact coverage.
 
 The Region XI remainder archive contains 37,018 verified tiles, 189,031 building areas, 540 water features, 3,036 land-use areas, 9,025 paths, and 3,508 indexed places. The ZIP is 31,562,839 bytes. The regional tile writer releases completed subtrees to reduce memory usage. It reproduced the existing Davao West PMTiles byte-for-byte in a comparison build.
+
+### Combined Davao Region
+
+Run `tools/merge-detail-coverage.py` with the finalized Region XI remainder, Davao West, and Tagum North extracts from the same source snapshot. Retile the merged data and rebuild its search index using the merged coverage. When packaging, pass `--replace region-xi davao-west --replace region-xi tagum-north` along with the previous catalog. This keeps the older coverage available during upgrades and presents a single Davao Region download. The Tagum–Davao starter stays bundled.
+
+The combined ZIP is 41,768,699 bytes and contains 43,018 independently decoded tiles, 270,824 building areas, 12,657 paths, 717 water features, 3,908 land-use areas, 336 landmark–entrance associations, and 4,745 indexed places. The [combined Davao release](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06-rxi-combined) passed an anonymous download and checksum comparison.
+
+### Batch for the remaining regions
+
+Use the same national PBF and the same region polygons as the bundled street maps. Stage all generated files outside the APK assets directory.
+
+```powershell
+$assets = 'app/src/main/assets'
+$detail = 'app/build/national-detail'
+uv run --python 3.12 --with osmium --with shapely python tools/extract-pilot-detail.py $pbf $detail --regions "$assets/regions" --skip-region 1100000000
+$directories = @(Get-ChildItem $detail -Directory | Where-Object Name -Match '^\d+$' | ForEach-Object FullName)
+uv run --python 3.12 --with osmium --with shapely python tools/finalize-pilot-detail.py $pbf @directories
+uv run --python 3.12 --with shapely python tools/build-region-detail-packs.py $detail $tooling $assets $streetIntermediates "$detail/delivery" --version 2026-11-06-national-detail --previous-catalog "$assets/detail-catalog.json" --skip-region 1100000000
+```
+
+Here `$pbf` is the Philippines source extract, `$tooling` contains the Node dependencies, and `$streetIntermediates` contains the nationwide `street-landmarks.tsv`. The batch shares one area extraction and one relation normalization pass. Each region has its own ZIP. The verifier traverses the PMTiles directory and decodes every stored tile without walking empty ocean tiles in the region's bounding box. Publish only after the complete build passes, then verify the public download checksums before updating the app catalog.

@@ -9,26 +9,20 @@ from collections import Counter
 from pathlib import Path
 import osmium
 
-source, output = map(Path, sys.argv[1:])
-data = json.loads((output / 'pilot.geojson').read_text(encoding='utf8'))
-relations = {f['properties']['source_id']: f['properties']['layer'] for f in data['features']
-    if f['properties']['source_id'].startswith('osm:r/')}
-suppressed = set()
+def features(directory):
+    with (directory / 'pilot.geojson').open(encoding='utf8') as stream:
+        first = stream.readline()
+        if first.strip() != '{"type":"FeatureCollection","features":[':
+            yield from json.loads(first + stream.read())['features']
+            return
+        for line in stream:
+            line = line.strip()
+            if line == ']}':
+                return
+            if line:
+                yield json.loads(line.rstrip(','))
+        raise ValueError(f'Truncated feature collection: {directory}')
 
-class Relations(osmium.SimpleHandler):
-    def relation(self, relation):
-        layer = relations.get(f'osm:r/{relation.id}')
-        if layer:
-            for member in relation.members:
-                if member.type == 'w' and member.role in ('outer', ''):
-                    suppressed.add((f'osm:w/{member.ref}', layer))
-
-Relations().apply_file(str(source))
-original = len(data['features'])
-data['features'] = [f for f in data['features'] if
-    (f['properties']['source_id'], f['properties']['layer']) not in suppressed]
-removed_duplicates = original - len(data['features'])
-before_dimensions = len(data['features'])
 
 def renderable(feature):
     geometry = feature['geometry']
@@ -50,21 +44,69 @@ def renderable(feature):
         return True
     return geometry['type'] in (single, multi)
 
-data['features'] = [f for f in data['features'] if renderable(f)]
-before_unbuilt = len(data['features'])
-data['features'] = [f for f in data['features'] if not (f['properties']['layer'] == 'road-detail' and
-    f['properties']['kind'] in ('construction', 'proposed', 'abandoned', 'razed', 'demolished'))]
-manifest = json.loads((output / 'source.json').read_text())
-counts = Counter(f['properties']['layer'] for f in data['features'])
-for layer in ('buildings', 'water', 'landuse', 'paths', 'road-detail'):
-    manifest['counts'][layer] = counts[layer]
-manifest['counts']['duplicate_member_areas_removed'] = manifest['counts'].get('duplicate_member_areas_removed', 0) + removed_duplicates
-manifest['counts']['non_renderable_geometry_removed'] = manifest['counts'].get('non_renderable_geometry_removed', 0) + before_dimensions - before_unbuilt
-manifest['counts']['unbuilt_roads_removed'] = manifest['counts'].get('unbuilt_roads_removed', 0) + before_unbuilt - len(data['features'])
-manifest['counts']['polygon_holes'] = sum(
-    sum(max(0, len(polygon) - 1) for polygon in f['geometry']['coordinates'])
-    if f['geometry']['type'] == 'MultiPolygon' else max(0, len(f['geometry']['coordinates']) - 1)
-    if f['geometry']['type'] == 'Polygon' else 0 for f in data['features'])
-(output / 'pilot.geojson').write_text(json.dumps(data, separators=(',', ':'), ensure_ascii=False), encoding='utf8')
-(output / 'source.json').write_text(json.dumps(manifest, indent=2), encoding='utf8')
-print(f"PASS relation normalization: removed {removed_duplicates} duplicate outer-member areas")
+def normalize(directory, suppressed):
+    manifest = json.loads((directory / 'source.json').read_text(encoding='utf8'))
+    counts = Counter({layer: 0 for layer in ('buildings', 'water', 'landuse', 'paths', 'road-detail')})
+    for key in ('duplicate_member_areas_removed', 'non_renderable_geometry_removed', 'unbuilt_roads_removed'):
+        counts[key] = manifest['counts'].get(key, 0)
+    counts['polygon_holes'] = 0
+    target = directory / 'pilot.geojson'
+    staging = target.with_suffix('.tmp')
+    with staging.open('w', encoding='utf8') as stream:
+        stream.write('{"type":"FeatureCollection","features":[\n')
+        separator = ''
+        for item in features(directory):
+            props = item['properties']
+            layer = props['layer']
+            if (props['source_id'], layer) in suppressed:
+                counts['duplicate_member_areas_removed'] += 1
+                continue
+            if not renderable(item):
+                counts['non_renderable_geometry_removed'] += 1
+                continue
+            if layer == 'road-detail' and props['kind'] in ('construction', 'proposed', 'abandoned', 'razed', 'demolished'):
+                counts['unbuilt_roads_removed'] += 1
+                continue
+            geometry = item['geometry']
+            if geometry['type'] in ('Polygon', 'MultiPolygon'):
+                polygons = [geometry['coordinates']] if geometry['type'] == 'Polygon' else geometry['coordinates']
+                counts['polygon_holes'] += sum(len(polygon) - 1 for polygon in polygons)
+            counts[layer] += 1
+            stream.write(separator)
+            stream.write(json.dumps(item, separators=(',', ':'), ensure_ascii=False))
+            separator = ',\n'
+        stream.write('\n]}')
+    staging.replace(target)
+    manifest['counts'].update(counts)
+    (directory / 'source.json').write_text(json.dumps(manifest, indent=2), encoding='utf8')
+    print(f"PASS {manifest['name']}: removed {counts['duplicate_member_areas_removed']} duplicate outer-member areas", flush=True)
+
+
+def main():
+    source = Path(sys.argv[1])
+    directories = [Path(path) for path in sys.argv[2:]]
+    if not directories:
+        raise ValueError('Specify at least one extracted detail directory')
+    relations = {}
+    suppressed = {directory: set() for directory in directories}
+    for directory in directories:
+        for item in features(directory):
+            props = item['properties']
+            source_id = props['source_id']
+            if source_id.startswith('osm:r/'):
+                relations.setdefault(int(source_id[6:]), []).append((directory, props['layer']))
+
+    class Relations(osmium.SimpleHandler):
+        def relation(self, relation):
+            for directory, layer in relations.get(relation.id, ()):
+                for member in relation.members:
+                    if member.type == 'w' and member.role in ('outer', ''):
+                        suppressed[directory].add((f'osm:w/{member.ref}', layer))
+
+    Relations().apply_file(str(source))
+    for directory in directories:
+        normalize(directory, suppressed[directory])
+
+
+if __name__ == '__main__':
+    main()

@@ -82,6 +82,8 @@ def package(pack_id, detail, search, output, version, base):
     with ZipFile(path) as archive:
         if archive.testzip() is not None:
             raise ValueError(f'Failed ZIP integrity check for {filename}')
+    if path.stat().st_size > 256_000_000:
+        raise ValueError(f'{filename} exceeds the Android download size limit')
     return dict(
         id=pack_id, name=metadata['name'], version=version, bounds=metadata['bounds'],
         url=f'{base}/{filename}', bytes=path.stat().st_size, sha256=sha256(path.read_bytes()),
@@ -97,6 +99,7 @@ def main():
     parser.add_argument('--base-url', required=True)
     parser.add_argument('--pack', nargs=3, metavar=('ID', 'DETAIL_DIR', 'SEARCH_DIR'), action='append', required=True)
     parser.add_argument('--previous-catalog', type=Path)
+    parser.add_argument('--replace', nargs=2, metavar=('NEW_ID', 'OLD_ID'), action='append', default=[])
     args = parser.parse_args()
     base = args.base_url.rstrip('/')
     url = urlsplit(base)
@@ -115,6 +118,10 @@ def main():
             parser.error('Unsupported previous catalog schema')
         packs.update((item['id'], item) for item in previous['packs'])
     packs.update((item['id'], item) for item in new_packs)
+    for new_id, old_id in args.replace:
+        if new_id not in ids or old_id not in packs or old_id in ids:
+            parser.error('--replace requires a new pack ID and a previous catalog ID')
+        packs[new_id].setdefault('replaces', []).append(old_id)
     (args.output / 'catalog.json').write_text(json.dumps(dict(schema=1, packs=list(packs.values())), indent=2) + '\n', encoding='utf8')
     for pack in new_packs:
         print(f"{pack['id']}: {pack['bytes']:,} bytes, {pack['tiles']:,} tiles, {pack['places']:,} places")

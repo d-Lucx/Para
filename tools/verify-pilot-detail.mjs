@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 const [tooling,input,assets,mode] = process.argv.slice(2);
 const require=createRequire(resolve(tooling,'package.json'));
-const {PMTiles}=require('pmtiles');
+const {PMTiles,tileIdToZxy}=require('pmtiles');
 const {VectorTile}=await import(pathToFileURL(require.resolve('@mapbox/vector-tile')).href);
 const {default:Pbf}=await import(pathToFileURL(require.resolve('pbf')).href);
 const path=join(assets,'pilot/detail.pmtiles'), bytes=readFileSync(path);
@@ -21,13 +21,16 @@ async function tile(lon,lat,z=16) {const [x,y]=tileAt(lon,lat,z);const r=await a
 try {
   const header=await archive.getHeader(), metadata=await archive.getMetadata();
   if(header.specVersion!==3 || header.maxZoom!==16 || metadata.vector_layers.length!==5) throw Error('Invalid pilot header/schema');
-  const features=JSON.parse(readFileSync(join(input,'pilot.geojson'))).features;
-  for(const layer of ['buildings','water','landuse','paths','road-detail']) {
-    const f=features.find(f=>f.properties.layer===layer);if(!f)throw Error(`Missing source ${layer}`);
-    let coordinate=f.geometry.coordinates;while(Array.isArray(coordinate[0]))coordinate=coordinate[0];
-    const data=await tile(...coordinate);
-    if(!data.layers[layer]?.length) throw Error(`Missing decoded ${layer}`);
-    console.log(`PASS pilot ${layer}: independent MVT decode`);
+  const expectedLayers=['buildings','water','landuse','paths','road-detail'];
+  if(mode!=='--all') {
+    const features=JSON.parse(readFileSync(join(input,'pilot.geojson'))).features;
+    for(const layer of expectedLayers) {
+      const f=features.find(f=>f.properties.layer===layer);if(!f)throw Error(`Missing source ${layer}`);
+      let coordinate=f.geometry.coordinates;while(Array.isArray(coordinate[0]))coordinate=coordinate[0];
+      const data=await tile(...coordinate);
+      if(!data.layers[layer]?.length) throw Error(`Missing decoded ${layer}`);
+      console.log(`PASS pilot ${layer}: independent MVT decode`);
+    }
   }
   if(mode==='--fixture') {
     const lon=125.605,lat=7.105,z=16,[x,y]=tileAt(lon,lat,z);
@@ -41,17 +44,33 @@ try {
     console.log('PASS courtyard remains empty after PMTiles/MVT tiling');
   }
   if(mode==='--all') {
-    const [west,south,east,north]=manifest.bounds;let checked=0;
-    for(let z=11;z<=16;z++) {
-      const [left,top]=tileAt(west,north,z),[right,bottom]=tileAt(east,south,z);
-      for(let x=left-1;x<=right+1;x++) for(let y=top-1;y<=bottom+1;y++) {
-        const result=await archive.getZxy(z,x,y);if(!result)continue;
-        const decoded=new VectorTile(new Pbf(new Uint8Array(result.data)));
-        for(const layer of Object.values(decoded.layers)) for(let i=0;i<layer.length;i++) layer.feature(i).loadGeometry();
-        checked++;
+    let checked=0;
+    const seenLayers=new Set();
+    async function decodeDirectory(offset,length,depth) {
+      if(depth>3)throw Error('PMTiles directory nesting exceeds the format limit');
+      const entries=await archive.cache.getDirectory(archive.source,offset,length,header);
+      for(const entry of entries) {
+        if(!entry.runLength) {
+          await decodeDirectory(header.leafDirectoryOffset+entry.offset,entry.length,depth+1);
+          continue;
+        }
+        for(let id=entry.tileId;id<entry.tileId+entry.runLength;id++) {
+          const result=await archive.getZxy(...tileIdToZxy(id));
+          if(!result)throw Error(`Missing indexed tile ${id}`);
+          const decoded=new VectorTile(new Pbf(new Uint8Array(result.data)));
+          for(const [name,layer] of Object.entries(decoded.layers)) {
+            seenLayers.add(name);
+            for(let i=0;i<layer.length;i++) layer.feature(i).loadGeometry();
+          }
+          checked++;
+        }
       }
     }
+    await decodeDirectory(header.rootDirectoryOffset,header.rootDirectoryLength,0);
     if(checked!==manifest.tiles)throw Error(`Decoded ${checked}, expected ${manifest.tiles} tiles`);
+    for(const layer of expectedLayers) {
+      if(manifest.counts[layer]>0 && !seenLayers.has(layer))throw Error(`Missing decoded ${layer}`);
+    }
     console.log(`PASS all ${checked} pilot tiles and feature geometry streams decoded`);
   }
   console.log(`PASS pilot hash/header: ${manifest.tiles} tiles, ${manifest.bytes} bytes`);

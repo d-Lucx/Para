@@ -10,6 +10,7 @@ import org.maplibre.geojson.Point
 import org.maplibre.geojson.Polygon
 
 internal class MapRegion(
+    val id: String,
     val name: String,
     val feature: Feature,
     private val polygons: List<List<List<Point>>>,
@@ -90,7 +91,7 @@ internal class PhilippineMaps private constructor(
                     is MultiPolygon -> geometry.coordinates()
                     else -> error("Invalid region geometry")
                 }
-                MapRegion(item.getString("name"), feature, polygons)
+                MapRegion(item.getString("id"), item.getString("name"), feature, polygons)
             }
             // Coastal/reclaimed-land landmarks can fall outside simplified land outlines.
             // Keep those exact, source-backed anchors selectable without accepting arbitrary ocean pins.

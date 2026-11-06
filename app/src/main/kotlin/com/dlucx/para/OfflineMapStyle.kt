@@ -80,7 +80,6 @@ internal fun styleJson(
         streetLayers(listOf("water" to water, "rail" to outline)) +
         // Regional detail uses the nationwide street labels so each name is drawn once.
         detailPacks.flatMap { pilotRoadLayers(dark, it.id, showLabels = it.rectangular) } + streetLabels + listOf(
-        line("coverage", Overlay, "boundary", outline, 2.0, dash = true),
         line("track", Overlay, "track", primary, 3.5),
         line("approach", Overlay, "approach", approach, 2.0, dash = true),
         line("arrival", Overlay, "arrival", arrival, 2.0),

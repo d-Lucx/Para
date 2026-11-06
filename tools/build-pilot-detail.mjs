@@ -1,5 +1,6 @@
 // node tools/build-pilot-detail.mjs <tooling> <extracted> <assets>
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { createReadStream, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { createInterface } from 'node:readline';
 import { createRequire } from 'node:module';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -12,13 +13,40 @@ const { fromGeojsonVt } = require('vt-pbf');
 const { zxyToTileId } = require('pmtiles');
 const source = JSON.parse(readFileSync(join(input, 'source.json')));
 if (!Object.hasOwn(source.counts, 'duplicate_member_areas_removed')) throw Error('Run finalize-pilot-detail.py before tiling');
-const data = JSON.parse(readFileSync(join(input, 'pilot.geojson')));
 const minZoom = { landuse: 11, water: 11, buildings: 15, paths: 14, 'road-detail': 11 };
 const regional = Boolean(source.coverage);
 const firstZoom = 11;
-const indexes = Object.fromEntries(Object.keys(minZoom).map(layer => [layer, geojsonvt({type:'FeatureCollection',
-  features:data.features.filter(f => f.properties.layer === layer)},
-  {maxZoom:16,indexMaxZoom:regional ? firstZoom : 16,indexMaxPoints:0,tolerance:1,buffer:64})]));
+const byLayer = Object.fromEntries(Object.keys(minZoom).map(layer => [layer, []]));
+const inputPath = join(input, 'pilot.geojson');
+const stream = createReadStream(inputPath, {encoding:'utf8'});
+const lines = createInterface({input:stream,crlfDelay:Infinity});
+let firstLine = true;
+let closed = false;
+function collect(feature) {
+  byLayer[feature.properties.layer].push(feature);
+}
+for await (const line of lines) {
+  if (firstLine) {
+    firstLine = false;
+    if (line === '{"type":"FeatureCollection","features":[') continue;
+    for (const feature of JSON.parse(readFileSync(inputPath)).features) collect(feature);
+    closed = true;
+    stream.destroy();
+    break;
+  }
+  if (line === ']}') {
+    closed = true;
+    break;
+  }
+  if (line) collect(JSON.parse(line.endsWith(',') ? line.slice(0,-1) : line));
+}
+if (!closed) throw Error('Truncated feature collection');
+const indexes = Object.fromEntries(Object.keys(minZoom).map(layer => {
+  const index = geojsonvt({type:'FeatureCollection',features:byLayer[layer]},
+    {maxZoom:16,indexMaxZoom:regional ? firstZoom : 16,indexMaxPoints:0,tolerance:1,buffer:64});
+  delete byLayer[layer];
+  return [layer,index];
+}));
 const coordinates = new Map();
 for (const index of Object.values(indexes)) for (const tile of index.tileCoords) {
   if (tile.z >= firstZoom) coordinates.set(zxyToTileId(tile.z,tile.x,tile.y),tile);

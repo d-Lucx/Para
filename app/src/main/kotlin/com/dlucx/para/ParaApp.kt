@@ -386,13 +386,17 @@ internal fun ParaApp(
                             },
                             onOutsideCoverage = { outsideCoverage = true },
                             onViewportIdle = { viewport, zoom ->
-                                detailViewport = CorridorPoint(
+                                val center = CorridorPoint(
                                     (viewport.latitudeSouth + viewport.latitudeNorth) / 2,
                                     (viewport.longitudeWest + viewport.longitudeEast) / 2,
-                                ) to zoom
-                                detailSuggestion = if (zoom >= 11) detailCatalog.firstOrNull { detail ->
-                                    detail.intersects(viewport) && !context.isBundled(detail) &&
-                                        context.installedDetail(detail) == null
+                                )
+                                detailViewport = center to zoom
+                                detailSuggestion = if (zoom >= 11) {
+                                    val region = PhilippineMaps.load(context).regionAt(center)
+                                    val packId = region?.id?.let { if (it == "1100000000") "region-xi" else "region-$it" }
+                                    detailCatalog.firstOrNull { detail ->
+                                        detail.id == packId && context.installedDetail(detail) == null
+                                    }
                                 } else null
                             },
                             initialViewport = detailViewport.takeIf { detailRevision > 0 },

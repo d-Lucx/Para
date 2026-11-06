@@ -46,8 +46,22 @@ internal class PilotMaps private constructor(val packs: List<DetailMapPack>, pri
 
         fun load(context: Context): PilotMaps = cached ?: synchronized(this) {
             cached ?: run {
+                val catalog = context.detailCatalog(includeSuperseded = true)
+                val superseded = mutableSetOf<String>()
+                val downloaded = catalog.sortedByDescending { it.replaces.size }.mapNotNull { detail ->
+                    if (detail.id in superseded || context.isBundled(detail)) return@mapNotNull null
+                    val directory = context.installedDetail(detail, allowOlder = true) ?: return@mapNotNull null
+                    runCatching {
+                        val index = JSONObject(directory.resolve("index.json").readText())
+                        val file = directory.resolve("detail.pmtiles")
+                        check(index.getInt("schema") == 1 && file.length() == index.getLong("bytes"))
+                        pack(detail.id, file, index) to entrances(JSONArray(directory.resolve("entrances.json").readText()))
+                    }.getOrNull()?.also {
+                        if (directory.name == detail.version) superseded.addAll(detail.replaces)
+                    }
+                }
                 val directories = listOf("pilot" to "pilot") +
-                    context.assets.list("detail").orEmpty().sorted().map { it to "detail/$it" }
+                    context.assets.list("detail").orEmpty().filterNot { it in superseded }.sorted().map { it to "detail/$it" }
                 val files = directories.map { (id, directory) ->
                     val index = context.assets.open("$directory/index.json").bufferedReader().use { JSONObject(it.readText()) }
                     val hash = index.getString("sha256")
@@ -58,16 +72,6 @@ internal class PilotMaps private constructor(val packs: List<DetailMapPack>, pri
                 val entries = directories.flatMap { (_, directory) ->
                     val data = context.assets.open("$directory/entrances.json").bufferedReader().use { JSONArray(it.readText()) }
                     entrances(data)
-                }
-                val downloaded = context.detailCatalog().mapNotNull { detail ->
-                    val directory = context.installedDetail(detail, allowOlder = true) ?: return@mapNotNull null
-                    if (context.isBundled(detail)) return@mapNotNull null
-                    runCatching {
-                        val index = JSONObject(directory.resolve("index.json").readText())
-                        val file = directory.resolve("detail.pmtiles")
-                        check(index.getInt("schema") == 1 && file.length() == index.getLong("bytes"))
-                        pack(detail.id, file, index) to entrances(JSONArray(directory.resolve("entrances.json").readText()))
-                    }.getOrNull()
                 }
                 PilotMaps(files.map { it.first } + downloaded.map { it.first },
                     entries + downloaded.flatMap { it.second }).also { result ->

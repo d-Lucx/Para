@@ -27,6 +27,11 @@ class OfflineMapStyleTest {
         val layers = style.getAsJsonArray("layers").map { it.asJsonObject }
         val ids = layers.map { it.get("id").asString }
         assertEquals("Duplicate IDs break native styles", ids.size, ids.toSet().size)
+        assertTrue("The old pilot rectangle must stay hidden", "coverage" !in ids)
+        for (id in listOf("approach", "pilot-paths")) {
+            val paint = layers.single { it.get("id").asString == id }.getAsJsonObject("paint")
+            assertTrue("Keep the existing dash styling on $id", paint.has("line-dasharray"))
+        }
         val sources = style.getAsJsonObject("sources").keySet()
         val regionRings = style.getAsJsonObject("sources").getAsJsonObject("region-xi-bounds")
             .getAsJsonObject("data").getAsJsonObject("geometry").getAsJsonArray("coordinates")

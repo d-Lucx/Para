@@ -485,10 +485,6 @@ private fun overlay(
     fun marker(kind: String, point: Point) {
         features += Feature.fromGeometry(point).apply { addStringProperty("kind", kind) }
     }
-    line("boundary", listOf(
-        Point.fromLngLat(West, South), Point.fromLngLat(East, South),
-        Point.fromLngLat(East, North), Point.fromLngLat(West, North), Point.fromLngLat(West, South),
-    ))
     for (segment in segments) {
         val points = segment.map { Point.fromLngLat(it.longitude, it.latitude) }
         if (points.size >= 2) line("track", points)
