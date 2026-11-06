@@ -79,7 +79,10 @@ The [map-first expansion plan](<Para Map-first Expansion Plan.md>) tracks the ap
 - [x] Open Home to the offline map. A landmark or custom pin opens the existing confirmation flow through **Set arrival alarm**. Search, coordinate entry and saved destinations remain available.
 - [x] Infinix X6852, debug build `ff5c630`. Open the nationwide map, reject a tap outside coverage, confirm a custom pin through alarm setup, retain the pin on Back, and expand saved destinations. Search for Polyclinic Davao and verify both mapped entrances appear.
 - [ ] Verify a landmark tap directly from Home, coordinate entry, saved destination actions, large text and TalkBack on the map-first build.
-- [x] Add **Locate** to Home. With precise location permission it requests a foreground GPS fix and recenters once. The position shows its accuracy and uses an arrow when a reliable compass or travel bearing is available.
+- [x] Add **Locate** to Home. It requests foreground location and recenters once. The position shows its accuracy and the arrow follows phone orientation when available.
+- [x] Request portrait for Main and Arrival on Android phones.
+- [x] Confirm both portrait declarations in the packaged APK and a successful rotation-vector subscription after tapping **Locate** on the Infinix.
+- [ ] Verify phone rotation with Android auto-rotate on and confirm that the heading arrow responds while standing still, with the phone flat and upright.
 - [x] On the Infinix, **Locate** showed **Waiting for GPS** while the map stayed visible. After switching to Settings and back, Home cleared the request. No usable fix arrived during the smoke test.
 - [ ] Verify live recenter, heading, loss of fix and permission denial on device.
 - [x] Allow a recent approximate position on Home, with an accuracy label and a link to Android location settings when device location is off. Trip arrival still requires a fresh, precise GPS fix.

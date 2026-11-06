@@ -55,6 +55,9 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.Property
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
@@ -301,7 +304,7 @@ internal fun CorridorMap(
         style?.getSourceAs<GeoJsonSource>(Overlay)
             ?.setGeoJson(overlay(selectedPoint, approachRadiusMeters, arrivalRadiusMeters, recordedSegments))
     }
-    LaunchedEffect(style, homePosition) {
+    LaunchedEffect(style, homePosition?.point, homePosition?.accuracyMeters) {
         val features = homePosition?.let { position ->
             val ring = (0..32).map { ringPoint(position.point, position.accuracyMeters, it * PI / 16) }
             listOf(
@@ -309,11 +312,17 @@ internal fun CorridorMap(
                     .apply { addStringProperty("kind", "accuracy") },
                 Feature.fromGeometry(position.point.asPoint()).apply {
                     addStringProperty("kind", "position")
-                    position.heading?.let { addNumberProperty("heading", it) }
                 },
             )
         }.orEmpty()
         style?.getSourceAs<GeoJsonSource>(PositionOverlay)?.setGeoJson(FeatureCollection.fromFeatures(features))
+    }
+    LaunchedEffect(style, homePosition?.heading) {
+        val heading = homePosition?.heading
+        style?.getLayerAs<SymbolLayer>("position-heading")?.setProperties(
+            PropertyFactory.visibility(if (heading == null) Property.NONE else Property.VISIBLE),
+            PropertyFactory.iconRotate(heading?.toFloat() ?: 0f),
+        )
     }
     LaunchedEffect(map, recenterRequested, homePosition?.point) {
         val nativeMap = map ?: return@LaunchedEffect

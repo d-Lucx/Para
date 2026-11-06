@@ -19,6 +19,7 @@
         android:label="@string/app_name">
         <activity
             android:name=".MainActivity"
+            android:screenOrientation="portrait"
             android:launchMode="singleTop"
             android:exported="true">
             <intent-filter>
@@ -28,6 +29,7 @@
         </activity>
         <activity
             android:name=".ArrivalActivity"
+            android:screenOrientation="portrait"
             android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleTop" />

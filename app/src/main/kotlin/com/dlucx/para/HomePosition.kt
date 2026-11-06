@@ -29,8 +29,9 @@ import androidx.core.location.LocationManagerCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.delay
-import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.ceil
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 internal data class HomePosition(val point: CorridorPoint, val accuracyMeters: Int, val heading: Int?)
@@ -62,6 +63,7 @@ internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
     DisposableEffect(enabled, lifecycle, view) {
         val sensors = context.getSystemService(SensorManager::class.java)
         val rotation = sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+            ?: sensors.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR)
         val listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
                 if (location.hasAccuracy() && location.accuracy > 0 &&
@@ -81,12 +83,11 @@ internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
         val compass = object : SensorEventListener {
             private val matrix = FloatArray(9)
             private val screenMatrix = FloatArray(9)
-            private val angles = FloatArray(3)
 
             override fun onSensorChanged(event: SensorEvent) {
                 val accuracy = event.values.getOrNull(4)
-                if (event.accuracy < SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM ||
-                    accuracy == null || accuracy !in 0f..0.52f
+                if (event.accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE ||
+                    (accuracy != null && accuracy > 0.79f)
                 ) {
                     magneticHeading = null
                     return
@@ -99,12 +100,20 @@ internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
                 }
                 SensorManager.getRotationMatrixFromVector(matrix, event.values)
                 SensorManager.remapCoordinateSystem(matrix, x, y, screenMatrix)
-                SensorManager.getOrientation(screenMatrix, angles)
-                magneticHeading = if (abs(angles[1]) < 1.3f) Math.toDegrees(angles[0].toDouble()).roundToInt() else null
+                // Prefer the top edge. When it is almost vertical, use the direction
+                // through the back of the phone, as when looking over the screen.
+                val topEast = screenMatrix[1]
+                val topNorth = screenMatrix[4]
+                val heading = if (hypot(topEast, topNorth) >= 0.45f) {
+                    atan2(topEast, topNorth)
+                } else {
+                    atan2(-screenMatrix[2], -screenMatrix[5])
+                }
+                magneticHeading = Math.toDegrees(heading.toDouble()).roundToInt()
             }
 
             override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
-                if (accuracy < SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM) magneticHeading = null
+                if (accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) magneticHeading = null
             }
         }
         fun stop() {
@@ -127,7 +136,7 @@ internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
                             locations.getLastKnownLocation(provider)?.let(listener::onLocationChanged)
                         }
                     }
-                    rotation?.let { sensors.registerListener(compass, it, 200_000) }
+                    rotation?.let { sensors.registerListener(compass, it, 50_000) }
                 } catch (_: SecurityException) {
                     stop()
                 } catch (_: IllegalArgumentException) {
@@ -147,8 +156,6 @@ internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
         GeomagneticField(current.latitude.toFloat(), current.longitude.toFloat(), current.altitude.toFloat(), current.time).declination
     }
     val heading = magneticHeading?.let { Math.floorMod((it + declination).roundToInt(), 360) }
-        ?: current.bearing.takeIf { current.hasBearingAccuracy() && current.bearingAccuracyDegrees in 0f..30f &&
-            current.hasSpeed() && current.speed >= 2f }?.roundToInt()?.let { it % 360 }
     return HomeLocation(
         HomePosition(CorridorPoint(current.latitude, current.longitude), ceil(current.accuracy).toInt(), heading),
         deviceLocationEnabled,

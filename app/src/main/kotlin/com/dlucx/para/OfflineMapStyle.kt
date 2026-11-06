@@ -98,8 +98,8 @@ internal fun styleJson(
             "paint":{"fill-color":"$primary","fill-opacity":0.18}}""",
         """{"id":"position-dot","type":"circle","source":"$PositionOverlay","filter":["==","kind","position"],
             "paint":{"circle-color":"$primary","circle-radius":10,"circle-stroke-color":"$background","circle-stroke-width":2}}""",
-        """{"id":"position-heading","type":"symbol","source":"$PositionOverlay","filter":["has","heading"],
-            "layout":{"icon-image":"para-heading-arrow","icon-rotate":["get","heading"],"icon-rotation-alignment":"map",
+        """{"id":"position-heading","type":"symbol","source":"$PositionOverlay","filter":["==","kind","position"],
+            "layout":{"visibility":"none","icon-image":"para-heading-arrow","icon-rotation-alignment":"map",
                 "icon-allow-overlap":true,"icon-ignore-placement":true}}""",
     )
     val streetSources = streetPacks.joinToString(",") { """"streets-${it.id}":{"type":"vector","url":"${it.url}"}""" }

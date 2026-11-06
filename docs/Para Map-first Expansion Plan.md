@@ -12,7 +12,9 @@ The rider approved a map-first Home, a driving route preview with estimated trav
 4. Show the route distance and an estimated driving duration once a route is available. Show coverage or routing errors in the sheet with a way to change the endpoints. Keep **Set arrival alarm** accessible from a confirmed pin even when no route is available.
 5. Use the confirmed destination for Para’s existing arrival alarm. Routing, route estimates and the recorded GPS track have separate state.
 
-The position marker uses a dot and an accuracy circle for usable fixes. Show a heading arrow when orientation is trustworthy and a dot when it is uncertain. Use device orientation for facing and GPS bearing for direction of travel where appropriate, with explicit source handling and camera-bearing compensation. Subscribe to map location and orientation while the screen is visible. See the [Android position sensors reference](https://developer.android.com/develop/sensors-and-location/sensors/sensors_position).
+The position marker uses a dot and an accuracy circle for usable fixes. Show a heading arrow when device orientation is available. Use the direction of the phone's top edge when flat and the direction through the back of the phone when nearly upright. Update the arrow independently of the GPS geometry. Subscribe to map location and orientation while the screen is visible. See the [Android position sensors reference](https://developer.android.com/develop/sensors-and-location/sensors/sensors_position).
+
+The current active-trip screen shows the stop, GPS status, elapsed time and straight-line distance. The recorded GPS path appears in the trip overview after tracking ends. A live trip map would need its own Stitch review. The map can show the rider, confirmed destination and recorded trail while keeping the existing trip status and controls within reach. A planned driving route and ETA depend on the routing stage below.
 
 ## Nationwide presentation and data
 
