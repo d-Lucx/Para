@@ -94,6 +94,9 @@ The [map-first expansion plan](<Para Map-first Expansion Plan.md>) tracks the ap
 - [x] Infinix offline smoke test. Davao displayed food and clinic icons and kept both Polyclinic entrances. Manila displayed the shared road palette, street labels and transit icons.
 - [x] Infinix street-zoom check near Manila City Hall. Opposing one-way arrows, traffic-signal icons and a bank icon rendered.
 - [ ] Verify direct landmark and unnamed amenity pin selection, and compare a rendered reverse one-way arrow with its OSM way direction.
+- [x] Move map attribution off the image into a compact line below it. Verified on the Infinix that the line sits outside the map and the full ODbL attribution opens in Settings.
+- [x] Infinix destination setup. A vertical drag moved the map while the search and zoom controls stayed in place. A swipe starting outside the map scrolled the page.
+- [ ] Verify horizontal and diagonal drags and repeat the gesture check on a saved trip overview.
 
 - [x] Record the map review decisions and collect project guides in `docs/`, with a root README and documentation index.
 - [x] Locate the existing Para Stitch project, verify the cached map-source SHA-256 against its notice, and record the unchanged pack/search baseline in the [pilot map design review](<Para Pilot Map Design Review.md>). ADB detects the Infinix; no new app/device acceptance check is implied.

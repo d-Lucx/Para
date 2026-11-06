@@ -2,9 +2,9 @@
 
 uv run --with osmium --with shapely python tools/extract-pilot-detail.py source.osm.pbf output
 """
+import argparse
 import hashlib
 import json
-import sys
 from collections import Counter
 from pathlib import Path
 
@@ -12,9 +12,18 @@ import osmium
 from shapely.geometry import box, mapping, shape, Point
 from shapely.strtree import STRtree
 
-source, output = map(Path, sys.argv[1:])
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('source', type=Path)
+parser.add_argument('output', type=Path)
+parser.add_argument('--bounds', type=float, nargs=4, metavar=('WEST', 'SOUTH', 'EAST', 'NORTH'),
+    default=[125.51, 6.99, 125.89, 7.48])
+parser.add_argument('--name', default='Tagum–Davao pilot detail')
+args = parser.parse_args()
+source, output, bounds = args.source, args.output, args.bounds
+west, south, east, north = bounds
+if not (-180 <= west < east <= 180 and -85 <= south < north <= 85):
+    parser.error('bounds must be west south east north in increasing order')
 output.mkdir(parents=True, exist_ok=True)
-bounds = [125.51, 6.99, 125.89, 7.48]
 pilot = box(*bounds)
 factory = osmium.geom.GeoJSONFactory()
 features, entrances, landmarks = [], [], []
@@ -113,6 +122,8 @@ counts['entrance_nodes'] = len(entrances)
 counts['associated_entrances'] = len(associated)
 (output / 'pilot.geojson').write_text(json.dumps(dict(type='FeatureCollection', features=features), separators=(',', ':'), ensure_ascii=False), encoding='utf8')
 (output / 'entrances.json').write_text(json.dumps(associated, separators=(',', ':'), ensure_ascii=False), encoding='utf8')
-manifest = dict(bounds=bounds, source_sha256=hashlib.file_digest(source.open('rb'), 'sha256').hexdigest(), counts=dict(counts))
+with source.open('rb') as source_file:
+    source_hash = hashlib.file_digest(source_file, 'sha256').hexdigest()
+manifest = dict(name=args.name, bounds=bounds, source_sha256=source_hash, counts=dict(counts))
 (output / 'source.json').write_text(json.dumps(manifest, indent=2), encoding='utf8')
 print(json.dumps(manifest), flush=True)

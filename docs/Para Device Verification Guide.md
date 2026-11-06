@@ -86,3 +86,9 @@ Use these results to update the open device verification entries in the acceptan
 1. Open Para in airplane mode. Search for **Polyclinic Davao**, zoom into downtown Davao, and look for labeled streets and category icons for clinics, banks, fuel, food and transit.
 2. Zoom in to street level and check a mapped signal and a known one-way road. Compare the arrow with the OSM way direction. Verify that a traffic-signal icon does not snap the destination to the signal.
 3. Repeat in a different region. Tap a named landmark and then an unnamed amenity icon. The first should show its name and the second should use its category.
+
+## 9. Map gestures and credits
+
+1. Open destination setup through **Search places or enter coordinates**. Drag vertically, horizontally, and diagonally starting inside the map. Verify that the map pans and the page stays in place.
+2. Swipe starting on the content outside the map. The page should scroll. Repeat on a saved trip overview and check that the read-only map still pans.
+3. Check that the attribution line is below the map image and the full credits are available from **Settings → Map sources and licenses**.

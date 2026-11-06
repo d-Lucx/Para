@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,7 +38,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
@@ -102,7 +102,6 @@ internal fun CorridorMap(
     onRecenterComplete: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val largeText = LocalDensity.current.fontScale > 1.3f
     var mapAttempt by remember { mutableIntStateOf(0) }
     val mapData by rememberOfflineMapData(mapAttempt)
     val loaded = mapData?.getOrNull()
@@ -234,7 +233,12 @@ internal fun CorridorMap(
             nativeMap.addOnMapClickListener(click)
             listener = nativeMap to click
             var dragging: String? = null
-            view.setOnTouchListener { _, event ->
+            view.setOnTouchListener { mapView, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> mapView.parent?.requestDisallowInterceptTouchEvent(true)
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                        mapView.parent?.requestDisallowInterceptTouchEvent(false)
+                }
                 val point = latestPoint
                 if (readOnly || point == null) return@setOnTouchListener false
                 val projection = nativeMap.projection
@@ -294,6 +298,7 @@ internal fun CorridorMap(
         }
         onDispose {
             active = false
+            view.parent?.requestDisallowInterceptTouchEvent(false)
             benchmark?.close()
             listener?.let { (nativeMap, click) -> nativeMap.removeOnMapClickListener(click) }
             view.setOnTouchListener(null)
@@ -374,33 +379,33 @@ internal fun CorridorMap(
                 LatLngBounds.from(north, east, south, west), 40))
         }
     }
-    Box(modifier) {
-        AndroidView(factory = { view }, modifier = Modifier.fillMaxSize())
-        Column(Modifier.align(Alignment.TopEnd).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (onRecenter != null) {
-                OutlinedButton(onClick = onRecenter, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text("Locate", Modifier.semantics { contentDescription = "Center on current location" })
+    Column(modifier) {
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            AndroidView(factory = { view }, modifier = Modifier.fillMaxSize())
+            Column(Modifier.align(Alignment.TopEnd).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (onRecenter != null) {
+                    OutlinedButton(onClick = onRecenter, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text("Locate", Modifier.semantics { contentDescription = "Center on current location" })
+                    }
+                }
+                OutlinedButton(onClick = { map?.animateCamera(CameraUpdateFactory.zoomIn()) },
+                    modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp)) { Text("+", Modifier.semantics { contentDescription = "Zoom in" }) }
+                OutlinedButton(onClick = { map?.animateCamera(CameraUpdateFactory.zoomOut()) },
+                    modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp)) { Text("−", Modifier.semantics { contentDescription = "Zoom out" }) }
+            }
+            if (!readOnly && selectedPoint != null && approachRadiusMeters > 0 && arrivalRadiusMeters > 0) {
+                Surface(Modifier.align(Alignment.TopStart).padding(8.dp)) {
+                    Text("Approach $approachRadiusMeters m\nArrival $arrivalRadiusMeters m", Modifier.padding(6.dp), style = MaterialTheme.typography.labelSmall)
                 }
             }
-            OutlinedButton(onClick = { map?.animateCamera(CameraUpdateFactory.zoomIn()) },
-                modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp)) { Text("+", Modifier.semantics { contentDescription = "Zoom in" }) }
-            OutlinedButton(onClick = { map?.animateCamera(CameraUpdateFactory.zoomOut()) },
-                modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp)) { Text("−", Modifier.semantics { contentDescription = "Zoom out" }) }
+            if (failed) Text("Offline map unavailable", Modifier.align(Alignment.Center))
         }
-        if (!readOnly && selectedPoint != null && approachRadiusMeters > 0 && arrivalRadiusMeters > 0) {
-            Surface(Modifier.align(Alignment.TopStart).padding(8.dp)) {
-                Text("Approach $approachRadiusMeters m\nArrival $arrivalRadiusMeters m", Modifier.padding(6.dp), style = MaterialTheme.typography.labelSmall)
-            }
-        }
-        if (failed) Text("Offline map unavailable", Modifier.align(Alignment.Center))
-        Surface(Modifier.align(Alignment.BottomEnd)) {
-            Text(
-                if (largeText) "© OpenStreetMap contributors · GeoNames"
-                else "© OpenStreetMap contributors · GeoNames\nRegional boundaries: NAMRIA / PSA",
-                Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                style = MaterialTheme.typography.labelSmall,
-            )
-        }
+        Text(
+            "© OpenStreetMap · GeoNames · NAMRIA/PSA",
+            Modifier.align(Alignment.End).padding(top = 3.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.onSurfaceVariant,
+        )
     }
 }
 

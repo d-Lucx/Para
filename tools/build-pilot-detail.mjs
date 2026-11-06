@@ -49,7 +49,7 @@ const leaves=[];let leafLength=0;
 for(let i=0;i<tiles.length;i+=1024) {const bytes=directory(tiles.slice(i,i+1024));leaves.push({id:tiles[i].id,run:0,bytes,offset:leafLength});leafLength+=bytes.length;}
 const root=directory(leaves);
 if(root.length+127>16384) throw Error('Oversized PMTiles root');
-const metadata=gzipSync(JSON.stringify({name:'Tagum–Davao pilot detail',attribution:'© OpenStreetMap contributors',
+const metadata=gzipSync(JSON.stringify({name:source.name ?? 'Tagum–Davao pilot detail',attribution:'© OpenStreetMap contributors',
   vector_layers:Object.keys(minZoom).map(id=>({id,minzoom:minZoom[id],maxzoom:16,fields:{name:'String',kind:'String',source_id:'String',access:'String',foot:'String'}}))}));
 const header=Buffer.alloc(127);header.write('PMTiles');header[7]=3;
 const leafStart=127+root.length+metadata.length, dataStart=leafStart+leafLength;
@@ -57,7 +57,10 @@ const leafStart=127+root.length+metadata.length, dataStart=leafStart+leafLength;
   .forEach((v,i)=>header.writeBigUInt64LE(BigInt(v),8+i*8));
 header.set([1,2,2,1,11,16],96);
 source.bounds.forEach((v,i)=>header.writeInt32LE(Math.round(v*1e7),102+i*4));
-header[118]=13;header.writeInt32LE(1257000000,119);header.writeInt32LE(72500000,123);
+const [west,south,east,north]=source.bounds;
+header[118]=13;
+header.writeInt32LE(Math.round((west+east)*5e6),119);
+header.writeInt32LE(Math.round((south+north)*5e6),123);
 const bytes=Buffer.concat([header,root,metadata,...leaves.map(e=>e.bytes),...tiles.map(t=>t.bytes)]);
 const output=join(assets,'pilot');mkdirSync(output,{recursive:true});
 writeFileSync(join(output,'detail.pmtiles'),bytes);

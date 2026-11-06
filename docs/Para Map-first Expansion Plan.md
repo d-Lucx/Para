@@ -28,7 +28,7 @@ Apply the pilot’s geographic colors and road hierarchy throughout the Philippi
 | Road directions | Show one-way arrows where source rules support them. Preserve the OSM way direction, reverse direction values and relevant implicit rules. Use destination or road-reference labels when supplied. |
 | Traffic signals | Extract signal nodes even when unnamed and show them at street-level zoom. The icon identifies a mapped signal location. |
 
-The current national extractor stores road class and name and requires a name for a landmark. The pilot adds geographic detail, but neither map format supplies a complete routing graph. Add these attributes and signal points in the source pipeline rather than inferring them from rendered pixels. See the [OSM one-way reference](https://wiki.openstreetmap.org/wiki/Key:oneway) and [traffic-signal reference](https://wiki.openstreetmap.org/wiki/Tag:highway=traffic_signals).
+The national extractor now stores road class, labels, direction, categorized landmarks and signal points. The pilot adds geographic detail. Driving routes still need a graph built from the source road network. See the [OSM one-way reference](https://wiki.openstreetmap.org/wiki/Key:oneway) and [traffic-signal reference](https://wiki.openstreetmap.org/wiki/Tag:highway=traffic_signals).
 
 ## Zoom-driven downloads
 

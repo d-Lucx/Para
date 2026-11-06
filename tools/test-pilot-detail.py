@@ -25,4 +25,11 @@ with tempfile.TemporaryDirectory() as directory:
     assert path['properties']['access'] == 'private', 'Access restrictions lost'
     assert any(f['properties']['layer'] == 'water' for f in features)
     assert any(f['properties']['layer'] == 'landuse' for f in features)
+    adjacent = Path(directory) / 'adjacent'
+    subprocess.run([sys.executable, str(root / 'extract-pilot-detail.py'), str(root / 'test-fixtures/pilot.osm'),
+        str(adjacent), '--bounds', '125.45', '6.99', '125.51', '7.48', '--name', 'Adjacent fixture'], check=True)
+    adjacent_features = json.loads((adjacent / 'pilot.geojson').read_text())['features']
+    adjacent_road = next(f for f in adjacent_features if f['properties']['source_id'] == road['properties']['source_id'])
+    seam = shape(road['geometry']).intersection(shape(adjacent_road['geometry']))
+    assert seam.geom_type == 'Point' and seam.x == 125.51, 'Adjacent road pieces must share their boundary endpoint'
 print('PASS pilot relation holes, duplicate handling, boundary entrances, border clipping, access tags and geographic layers')
