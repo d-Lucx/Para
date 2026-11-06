@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -48,6 +49,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -58,7 +61,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private enum class Page(@StringRes val label: Int, val icon: Int) {
-    Home(R.string.home, R.drawable.ic_para_home),
+    Home(R.string.map, R.drawable.ic_para_map),
     History(R.string.history, R.drawable.ic_para_history),
     Settings(R.string.settings, R.drawable.ic_para_settings),
 }
@@ -152,6 +155,12 @@ internal fun ParaApp(
     var page by rememberSaveable { mutableStateOf(Page.Home) }
     var setupOpen by rememberSaveable { mutableStateOf(false) }
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pinLatitude by rememberSaveable { mutableStateOf<Double?>(null) }
+    var pinLongitude by rememberSaveable { mutableStateOf<Double?>(null) }
+    var pinLabel by rememberSaveable { mutableStateOf<String?>(null) }
+    var setupFromPin by rememberSaveable { mutableStateOf(false) }
+    var savedExpanded by rememberSaveable { mutableStateOf(false) }
+    val mapPin = pinLatitude?.let { lat -> pinLongitude?.let { lon -> CorridorPoint(lat, lon) } }
     var saved by remember { mutableStateOf<List<SavedDestination>?>(null) }
     var loadFailed by remember { mutableStateOf(false) }
     var loadAttempt by remember { mutableStateOf(0) }
@@ -183,6 +192,9 @@ internal fun ParaApp(
             setupOpen = false
             page = Page.Home
             pendingDeletion = null
+            pinLatitude = null
+            pinLongitude = null
+            pinLabel = null
         }
     }
     LaunchedEffect(destinations, loadAttempt) {
@@ -262,6 +274,8 @@ internal fun ParaApp(
         if (setupOpen && entries != null) {
             DestinationSetup(
                 initialDestination = entries.firstOrNull { it.id == editingId }?.draft,
+                initialPin = mapPin.takeIf { setupFromPin },
+                initialPinLabel = pinLabel.takeIf { setupFromPin },
                 onBack = ::closeSetup,
                 onSave = { draft ->
                     val id = editingId
@@ -272,13 +286,14 @@ internal fun ParaApp(
             )
             return@ParaTheme
         }
+        val compactHeight = LocalWindowInfo.current.containerSize.height < with(LocalDensity.current) { 520.dp.roundToPx() }
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 ParaHeader(
                     title = if (page == Page.Home) stringResource(R.string.app_name) else stringResource(page.label),
                     subtitle = when (page) {
-                        Page.Home -> stringResource(R.string.commuter_alarm)
+                        Page.Home -> null
                         Page.History -> "On-device encrypted storage"
                         Page.Settings -> "Preferences & audio"
                     },
@@ -308,71 +323,115 @@ internal fun ParaApp(
             Column(
                 modifier = Modifier.fillMaxSize()
                     .padding(insets)
-                    .verticalScroll(rememberScrollState())
+                    .then(if (page == Page.Home && !compactHeight) Modifier else Modifier.verticalScroll(rememberScrollState()))
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 when (page) {
                     Page.Home -> {
-                        ParaPanel {
-                            ParaBadge("Map available offline", highlighted = true)
-                            Text("Philippine regional maps", style = MaterialTheme.typography.titleLarge)
-                            Text("Browse all 18 regions. Search towns, transit stops, and landmarks with streets and labels available offline.")
-                        }
-                        Button(
+                        var outsideCoverage by remember { mutableStateOf(false) }
+                        OutlinedButton(
                             onClick = {
                                 editingId = null
+                                setupFromPin = false
                                 setupOpen = true
                             },
                             enabled = entries != null && !writing,
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                ParaIcon(R.drawable.ic_para_pin)
-                                Text(stringResource(R.string.set_destination))
-                            }
+                            Text("Search places or enter coordinates")
                         }
-                        when {
-                            loadFailed -> {
-                                Text(stringResource(R.string.destination_load_failed))
-                                TextButton(onClick = { loadAttempt++ }) {
-                                    Text(stringResource(R.string.retry))
-                                }
+                        CorridorMap(
+                            selectedPoint = mapPin,
+                            approachRadiusMeters = 0,
+                            arrivalRadiusMeters = 0,
+                            onPointSelected = { point, label ->
+                                pinLatitude = point.latitude
+                                pinLongitude = point.longitude
+                                pinLabel = label
+                                outsideCoverage = false
+                            },
+                            onOutsideCoverage = { outsideCoverage = true },
+                            modifier = Modifier.fillMaxWidth()
+                                .then(if (compactHeight) Modifier.height(260.dp) else Modifier.weight(1f)),
+                        )
+                        Column(
+                            Modifier.fillMaxWidth().heightIn(max = 208.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            if (outsideCoverage) {
+                                Text("Choose a point inside a bundled map area.", color = MaterialTheme.colorScheme.error)
                             }
-                            entries == null -> Text(stringResource(R.string.loading_destinations))
-                            entries.isEmpty() -> EmptyState(
-                                R.string.saved_destinations,
-                                R.string.no_saved_destinations,
-                            )
-                            else -> {
-                                Text(
-                                    stringResource(R.string.saved_destinations),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                                entries.forEach { entry ->
-                                    ParaPanel {
-                                            ParaBadge("LOCAL DESTINATION")
-                                            Text(entry.draft.name, style = MaterialTheme.typography.titleMedium)
-                                            Text("Arrival radius · ${entry.draft.arrivalMeters} m")
-                                            OutlinedButton(
-                                                onClick = { startTrip(entry.draft) },
-                                                enabled = !writing && !historyLoading,
-                                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                                            ) { Text(stringResource(R.string.start_trip)) }
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                TextButton(
-                                                    onClick = {
-                                                        editingId = entry.id
-                                                        setupOpen = true
-                                                    },
-                                                    enabled = !writing,
-                                                ) { Text(stringResource(R.string.edit_destination)) }
-                                                TextButton(
-                                                    onClick = { pendingDeletion = entry },
-                                                    enabled = !writing,
-                                                ) { Text(stringResource(R.string.remove_destination)) }
+                            if (mapPin != null) {
+                                ParaPanel {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        ParaIcon(R.drawable.ic_para_pin)
+                                        Text("To", style = MaterialTheme.typography.labelLarge)
+                                    }
+                                    Text(pinLabel ?: "Custom pin", style = MaterialTheme.typography.titleMedium)
+                                    Button(
+                                        onClick = {
+                                            editingId = null
+                                            setupFromPin = true
+                                            setupOpen = true
+                                        },
+                                        enabled = entries != null && !writing,
+                                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                    ) { Text("Set arrival alarm") }
+                                }
+                            } else {
+                                Text("Tap a landmark or drop a destination pin.", style = MaterialTheme.typography.bodyMedium)
+                            }
+                            TextButton(onClick = { savedExpanded = !savedExpanded }) {
+                                Text(if (savedExpanded) "Hide saved destinations" else stringResource(R.string.saved_destinations))
+                            }
+                            if (savedExpanded || loadFailed) {
+                                when {
+                                    loadFailed -> {
+                                        Text(stringResource(R.string.destination_load_failed))
+                                        TextButton(onClick = { loadAttempt++ }) {
+                                            Text(stringResource(R.string.retry))
+                                        }
+                                    }
+                                    entries == null -> Text(stringResource(R.string.loading_destinations))
+                                    entries.isEmpty() -> EmptyState(
+                                        R.string.saved_destinations,
+                                        R.string.no_saved_destinations,
+                                    )
+                                    else -> {
+                                        Text(
+                                            stringResource(R.string.saved_destinations),
+                                            style = MaterialTheme.typography.titleMedium,
+                                        )
+                                        entries.forEach { entry ->
+                                            ParaPanel {
+                                                    ParaBadge("LOCAL DESTINATION")
+                                                    Text(entry.draft.name, style = MaterialTheme.typography.titleMedium)
+                                                    Text("Arrival radius · ${entry.draft.arrivalMeters} m")
+                                                    OutlinedButton(
+                                                        onClick = { startTrip(entry.draft) },
+                                                        enabled = !writing && !historyLoading,
+                                                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                                    ) { Text(stringResource(R.string.start_trip)) }
+                                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                        TextButton(
+                                                            onClick = {
+                                                                editingId = entry.id
+                                                                setupFromPin = false
+                                                                setupOpen = true
+                                                            },
+                                                            enabled = !writing,
+                                                        ) { Text(stringResource(R.string.edit_destination)) }
+                                                        TextButton(
+                                                            onClick = { pendingDeletion = entry },
+                                                            enabled = !writing,
+                                                        ) { Text(stringResource(R.string.remove_destination)) }
+                                                    }
                                             }
+                                        }
                                     }
                                 }
                             }

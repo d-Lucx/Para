@@ -4,7 +4,7 @@ Use the current debug APK and your Infinix X6852. Record the phone model, Androi
 
 ## 1. Offline map and stop search
 
-For a fresh-copy benchmark, build a separate debug app with `./gradlew.bat :app:assembleDebug -PparaMapBenchmark=true`. Copy the output APK to a benchmark filename before rebuilding the standard APK. Install the benchmark package `com.dlucx.para.mapbench` and launch `com.dlucx.para.mapbench/com.dlucx.para.MainActivity`. Open **Set destination** in airplane mode with Wi-Fi off. The debug log tag `ParaMapPerf` records bytes and milliseconds per copied asset. Reopen setup in the same process and check for additional copies. Remove the benchmark package when finished and restore connectivity.
+For a fresh-copy benchmark, build a separate debug app with `./gradlew.bat :app:assembleDebug -PparaMapBenchmark=true`. Copy the output APK to a benchmark filename before rebuilding the standard APK. Install the benchmark package `com.dlucx.para.mapbench` and launch `com.dlucx.para.mapbench/com.dlucx.para.MainActivity`. Let Home open the map in airplane mode with Wi-Fi off. The debug log tag `ParaMapPerf` records bytes and milliseconds per copied asset. Open **Search places or enter coordinates** and check for additional copies. Remove the benchmark package when finished and restore connectivity.
 
 ### Pilot detail and landmark confirmation
 
@@ -22,7 +22,7 @@ Record map preparation time, warm reopening time, installed storage and observed
 ### Nationwide map checks
 
 1. Install the APK. For the first-launch check, use a fresh install on a spare device or Android profile so you can keep your current saved destinations.
-2. Enable airplane mode and confirm Wi-Fi is off. Open Para, then tap **Set destination**.
+2. Enable airplane mode and confirm Wi-Fi is off. Open Para, then tap **Search places or enter coordinates**.
 3. Wait for the nationwide MapLibre overview. First use prepares local street packs and the search index; measure the wait and available storage. Open **Browse Philippine regions**, pick a region, and pan across a shared border. Search for **Manila** and **Cebu City** and check that each result shows its region and centers the map on the named point. Check real streets and local font labels while still offline; zoom in for smaller landmarks.
 4. Search for **Cebu South Bus Terminal** or another named terminal and select the result in the intended locality. Then search **Tagum**, select the pilot terminal, and confirm roads and both rings appear. Tap a named map label to select its point, or tap land for a custom pin. Tap beyond the bundled map areas and confirm Para explains the boundary and keeps the last valid destination. A town-center result is not an exact address or stop. Record missing source roads/landmarks separately.
 5. With TalkBack on, open **Enter destination coordinates**. Enter latitude `7.46` and longitude `125.80`, activate **Use coordinates**, and check that the custom destination is selected. Repeat with an outside coordinate and check that TalkBack announces the validation message.
@@ -63,3 +63,11 @@ Record each sound and display result separately. Include the phone's alarm volum
 Choose a stop along the route and start before boarding. Enable airplane mode, select the bundled stop, and lock the phone. Record the time or approximate location of the first usable fix, approach chime, and arrival alarm. Confirm dismissal and review the path and recorded distance. Note any tracking gaps, delayed alerts, missing map detail, and battery percentage before and after the trip.
 
 Use these results to update the open device verification entries in the acceptance checklist. Restore any phone settings changed for the test.
+
+## 6. Map-first Home smoke test
+
+1. Open Para with no active trip. The **Map** tab should open to the bundled map with **History** and **Settings** available.
+2. Zoom to a street and tap away from labels. Check that a pin and **Set arrival alarm** appear. Open the setup, check the pin, and use **Use this pin**. Confirm the arrival and approach controls appear before starting a trip.
+3. Go back and try a mapped landmark with a known entrance. Verify that the confirmation shows the landmark name and the available entrance. Go back again and check that Home retains the selected pin.
+4. Use **Search places or enter coordinates** and confirm that both the search field and **Enter destination coordinates** are available. Expand **Saved destinations** and check the saved entries and actions.
+5. Repeat with large text and TalkBack. Use search or coordinates to select a destination without a map gesture.

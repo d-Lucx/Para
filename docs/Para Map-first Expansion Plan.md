@@ -2,7 +2,7 @@
 
 Updated November 6, 2026.
 
-The rider approved a map-first Home, a driving route preview with estimated travel time, and explicit confirmation before downloading an area. This is the next product phase after the existing pilot map work. Review the new Stitch screens before changing the production navigation or enabling network access.
+The rider approved a map-first Home, a driving route preview with estimated travel time, and explicit confirmation before downloading an area. The revised light-mode Stitch layouts are approved.
 
 ## Map and destination flow
 
@@ -48,8 +48,10 @@ Acceptance fixtures should cover a reversed one-way, a forbidden turn, a grade-s
 
 - [x] Confirm map-first Home, prompted area downloads and driving previews with the rider.
 - [x] Generate and inspect the light-mode [route preview](designs/map-first-route-light.png) and [download prompt](designs/map-first-download-light.png) in Stitch.
-- [ ] Confirm the layouts with the rider before implementing them.
-- [ ] Implement the native map-first shell and foreground position marker after visual confirmation. Preserve the existing trip entry points and verify large text and TalkBack.
+- [x] Confirm the revised layouts with the rider.
+- [x] Implement map-first Home with the bundled map, a destination pin and handoff to the existing confirmation and alarm setup screens.
+- [ ] Verify the Home handoff, saved destinations, large text and TalkBack on a device.
+- [ ] Add the foreground position marker and recenter control.
 - [ ] Extend the source schema and deliver the shared style with category icons, one-way arrows, traffic signals and richer road names. Validate one pilot pack and an adjacent pack before the national rebuild.
 - [ ] Implement the area catalog and downloader, then verify cancellation, disk errors, integrity, version changes, boundary coverage and offline reopen.
 - [ ] Verify an offline driving graph and route preview on the pilot and a cross-pack fixture. Record measured startup, frame cadence, search, disk and package-size changes before enabling broad rollout.

@@ -1,7 +1,6 @@
 <resources>
     <string name="app_name">Para</string>
-    <string name="commuter_alarm">Offline commuter alarm</string>
-    <string name="home">Home</string>
+    <string name="map">Map</string>
     <string name="history">History</string>
     <string name="settings">Settings</string>
     <string name="saved_destinations">Saved destinations</string>

@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -65,6 +66,8 @@ internal fun DestinationSetup(
     onSave: (DestinationDraft) -> Unit,
     onTestAlarm: () -> Unit,
     onStartTrip: (DestinationDraft) -> Unit,
+    initialPin: CorridorPoint? = null,
+    initialPinLabel: String? = null,
 ) {
     var mapAttempt by remember { mutableIntStateOf(0) }
     val mapData by rememberOfflineMapData(mapAttempt)
@@ -84,10 +87,12 @@ internal fun DestinationSetup(
     var searching by remember { mutableStateOf(false) }
     val setupScroll = rememberScrollState()
     val largeText = LocalDensity.current.fontScale > 1.3f
-    var point by remember(initialDestination) {
-        mutableStateOf(initialDestination?.let { CorridorPoint(it.latitude, it.longitude) })
+    var point by remember(initialDestination, initialPin) {
+        mutableStateOf(initialDestination?.let { CorridorPoint(it.latitude, it.longitude) } ?: initialPin)
     }
-    var name by remember(initialDestination) { mutableStateOf(initialDestination?.name.orEmpty()) }
+    var name by remember(initialDestination, initialPin, initialPinLabel) {
+        mutableStateOf(initialDestination?.name ?: initialPinLabel ?: if (initialPin != null) "Custom pin" else "")
+    }
     var approach by remember(initialDestination) {
         mutableStateOf((initialDestination?.approachMeters ?: 1500).toString())
     }
@@ -101,11 +106,16 @@ internal fun DestinationSetup(
         mutableStateOf(initialDestination?.backupMinutes?.toString().orEmpty())
     }
     var outsideCoverage by remember { mutableStateOf(false) }
-    var region by remember { mutableStateOf<MapRegion?>(null) }
+    var region by remember(initialPin, maps) { mutableStateOf(initialPin?.let(maps::regionAt)) }
     var regionsOpen by remember { mutableStateOf(false) }
-    var focusSelection by remember(initialDestination) { mutableStateOf(initialDestination != null) }
+    var focusSelection by remember(initialDestination, initialPin) {
+        mutableStateOf(initialDestination != null || initialPin != null)
+    }
     var confirmed by remember(initialDestination) { mutableStateOf(initialDestination != null) }
-    var candidate by remember { mutableStateOf<TransitStop?>(null) }
+    var candidate by remember(initialPin, initialPinLabel, catalog) {
+        mutableStateOf(initialPin?.takeIf { initialPinLabel != null }
+            ?.let(catalog::at)?.takeIf { it.name == initialPinLabel })
+    }
     var adjusting by remember { mutableStateOf(false) }
     var entranceSelected by remember { mutableStateOf(false) }
 
@@ -156,7 +166,7 @@ internal fun DestinationSetup(
     }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { ParaHeader(if (largeText) "Destination" else "Set destination", badge = if (largeText) null else "OFFLINE", onBack = onBack) },
+        topBar = { ParaHeader(if (largeText) "Destination" else stringResource(R.string.set_destination), badge = if (largeText) null else "OFFLINE", onBack = onBack) },
         bottomBar = {
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
                 Column(
