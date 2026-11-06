@@ -14,7 +14,7 @@ The rider approved a map-first Home, a driving route preview with estimated trav
 
 The position marker uses a dot and an accuracy circle for usable fixes. Show a heading arrow when device orientation is available. Use the direction of the phone's top edge when flat and the direction through the back of the phone when nearly upright. Update the arrow independently of the GPS geometry. Subscribe to map location and orientation while the screen is visible. See the [Android position sensors reference](https://developer.android.com/develop/sensors-and-location/sensors/sensors_position).
 
-The current active-trip screen shows the stop, GPS status, elapsed time and straight-line distance. The recorded GPS path appears in the trip overview after tracking ends. A live trip map would need its own Stitch review. The map can show the rider, confirmed destination and recorded trail while keeping the existing trip status and controls within reach. A planned driving route and ETA depend on the routing stage below.
+The current active-trip screen shows the stop, GPS status, elapsed time and straight-line distance. The recorded GPS path appears in the trip overview after tracking ends. The [live trip Stitch draft](designs/live-trip-map-light.png) shows the rider, confirmed destination and recorded trail with fixed trip metrics and **End trip**. Before implementation, confirm the layout with the rider. The native map must pad its viewport so the rider marker stays visible and draw the recorded trail only through the latest recorded point. A planned driving route and ETA depend on the routing stage below.
 
 ## Nationwide presentation and data
 
@@ -43,6 +43,8 @@ This design follows Organic Maps’ regional download model. Its documentation d
 ## Driving route preview
 
 Evaluate a local routing engine and package format against the Tagum–Davao source. Build a connected graph from road nodes and ways, with directed edges, restrictions, access, speed and bridges/tunnels. Join neighboring graphs at stable node/edge identities. Compute route distance along the graph and travel time from mapped speed data and profile defaults. Present the result as an offline driving estimate. If required coverage is missing, identify the additional packs and let the rider choose whether to download them.
+
+The first engine candidate is the [Valhalla Android wrapper](https://github.com/Rallista/valhalla-mobile), which packages a native routing library for Android. Prototype against one graph spanning the pilot and Tagum North. Measure native library and graph sizes, route latency, and whether required graph tiles can be installed together across an area boundary. [GraphHopper](https://github.com/graphhopper/graphhopper) documents that Android offline routing is outside its official support, so it remains a fallback candidate. Choose an engine after the device measurements.
 
 Acceptance fixtures should cover a reversed one-way, a forbidden turn, a grade-separated crossing, a border crossing, manual origin with location denied, missing packs and no feasible route. Validate physical examples before expanding coverage. Live traffic, bus and jeepney schedules, and voice guidance are separate work.
 
