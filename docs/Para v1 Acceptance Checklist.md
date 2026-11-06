@@ -74,6 +74,8 @@ Dead reckoning, speed-scaled zones, automatic speaker escalation, and iOS are de
 
 Scope and Organic Maps references are recorded in the [map improvement plan](<Para Map Improvement Plan.md>). Build/data implementation evidence is distinguished from physical verification below.
 
+The [map-first expansion plan](<Para Map-first Expansion Plan.md>) tracks the separately approved scope for nationwide detail, prompted downloads and driving route previews, with Stitch layout approval pending.
+
 - [x] Record the map review decisions and collect project guides in `docs/`, with a root README and documentation index.
 - [x] Locate the existing Para Stitch project, verify the cached map-source SHA-256 against its notice, and record the unchanged pack/search baseline in the [pilot map design review](<Para Pilot Map Design Review.md>). ADB detects the Infinix; no new app/device acceptance check is implied.
 - [x] Generate and refine the light pilot-map/landmark-confirmation design in Stitch, export the final PNG and visually inspect it. User confirmation and physical UI checks remain separate.

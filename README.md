@@ -26,6 +26,8 @@ The catalog label optimization uses bundled glyphs for nationwide and pilot-stop
 
 First use prepares 183.5 MiB of local map and search files. If preparation fails, use **Retry offline maps** after resolving the storage problem. The isolated Infinix test recovered both a pilot archive and a regional archive in place. See the [copy and recovery results](<docs/Para Map Improvement Plan.md#first-use-preparation-and-copy-recovery>).
 
+The next map phase adds map-first Home, shared nationwide styling, optional area downloads and an offline driving route preview. See the [expansion plan and Stitch drafts](<docs/Para Map-first Expansion Plan.md>).
+
 ## Build and verify
 
 Use JDK 17, Android SDK Platform 37, Android platform-tools, and the repository's Gradle wrapper (Gradle 9.6.0). Android Studio can install the SDK components. The app supports Android 8.0 / API 26 and newer.

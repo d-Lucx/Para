@@ -72,6 +72,8 @@ Profile the current implementation and the richer pilot maps on the same Infinix
 
 Evaluate restricting expensive detail by zoom and viewport, caching unchanged overlays, and reducing unnecessary source/layer work only after profiling identifies the cost. Regional viewport loading requires buffers and cross-border ownership bounds; a road can be owned by a neighboring pack. Do not change GPS sampling or drop cross-border geometry as a rendering optimization. Set numeric performance budgets after baseline capture, and record before/after results here.
 
+The isolated debug package built with `-PparaMapBenchmark=true` emits `ParaMapPerf` timing for the first fully rendered frame after map style population, render callback gaps during camera motion, and local catalog searches. Callback gaps measure wall time between callbacks. The logs omit coordinates and search text. The Infinix run installed and launched the benchmark package, but the automation could not find **Set destination** in the UI hierarchy. It restored phone settings and uninstalled the test package. Renderer, gesture and search baselines remain open.
+
 #### Catalog label rendering
 
 Each map opening previously created a bitmap for each of the 412 distinct catalog names. The nationwide and pilot-stop layers now draw names with the bundled Inter glyphs and a theme-colored halo. The bundled catalog names use ASCII, ñ and the en dash. All three are covered by the local glyph ranges. See the [MapLibre symbol layer reference](https://maplibre.org/maplibre-style-spec/layers/#text-field).
@@ -107,6 +109,8 @@ We simulated a write-open failure by placing a directory at the AtomicFile tempo
 - [ ] Repeat relevant ride/release gates in the main acceptance checklist. No new physical test is marked passed by build/data validation.
 
 ## Suggestions for later decisions
+
+The rider subsequently approved a map-first Home, prompted area downloads and driving route previews. The expanded scope and design gate are tracked in the [map-first expansion plan](<Para Map-first Expansion Plan.md>). The original offline pilot scope above remains the baseline for performance comparisons.
 
 Potential later work: category browsing for terminals/markets/hospitals/schools; bounded typo tolerance and explicit search-area ranking; map source/version/size status; optional user-initiated GPX export with clear location disclosure; route previews with separately labeled road distance; optional walking navigation. Bus/jeepney route guidance would require suitable transit data and validation, not a car route presented as a transit itinerary. None of these is approved by the current answers.
 

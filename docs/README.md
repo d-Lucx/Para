@@ -11,6 +11,7 @@ All project guides are collected here. The [repository README](../README.md) des
 | [QA and release review](<Para v1 QA and Release Review.md>) | Findings, follow-up evidence, and release gates |
 | [Regional map build](<Regional map build.md>) | Offline asset sources, generation commands, limitations, and validation |
 | [Map improvement plan](<Para Map Improvement Plan.md>) | Organic Maps review, approved improvements, staged work, and performance checks |
+| [Map-first expansion plan](<Para Map-first Expansion Plan.md>) | Nationwide detail, area downloads, driving route previews, and Stitch drafts |
 | [Pilot map design review](<Para Pilot Map Design Review.md>) | Stitch proposal, source baseline, data preparation requirements, and design approval status |
 
 Commands in these guides run from the repository root unless stated otherwise. Mark proposals as approved only after a user decision; mark implementation and device verification separately. Update affected guides and links with each development phase.
