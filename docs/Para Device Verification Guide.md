@@ -92,3 +92,10 @@ Use these results to update the open device verification entries in the acceptan
 1. Open destination setup through **Search places or enter coordinates**. Drag vertically, horizontally, and diagonally starting inside the map. Verify that the map pans and the page stays in place.
 2. Swipe starting on the content outside the map. The page should scroll. Repeat on a saved trip overview and check that the read-only map still pans.
 3. Check that the attribution line is below the map image and the full credits are available from **Settings → Map sources and licenses**.
+
+## 10. Downloadable detail packs
+
+1. With internet available, open **Settings → Detailed offline maps**. Tagum North should be listed as included. Davao West should show its download size.
+2. Zoom into the Davao West area on **Map** and check for **Download map area**. Choose **Not now** and confirm the bundled street map remains browsable.
+3. Confirm the download. Check progress and that the area becomes installed. Disable Wi-Fi and mobile data, reopen Para, and zoom near Mintal Public Market. Look for building outlines and land-use detail.
+4. In Settings, remove Davao West. Verify the street map still works. Try a download with connectivity off, then restore connectivity and retry. Cancel a transfer and check that the area remains available to download again.

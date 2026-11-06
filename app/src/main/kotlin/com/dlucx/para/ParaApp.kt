@@ -46,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -346,6 +347,10 @@ internal fun ParaApp(
             ) {
                 when (page) {
                     Page.Home -> {
+                        val detailCatalog = remember(context) { context.detailCatalog() }
+                        var detailSuggestion by remember { mutableStateOf<DownloadableDetail?>(null) }
+                        var detailRevision by remember { mutableStateOf(0) }
+                        var detailViewport by remember { mutableStateOf<Pair<CorridorPoint, Double>?>(null) }
                         var outsideCoverage by remember { mutableStateOf(false) }
                         var locating by remember { mutableStateOf(false) }
                         var showLocationHelp by remember { mutableStateOf(false) }
@@ -370,7 +375,7 @@ internal fun ParaApp(
                         ) {
                             Text("Search places or enter coordinates")
                         }
-                        CorridorMap(
+                        key(detailRevision) { CorridorMap(
                             selectedPoint = mapPin,
                             approachRadiusMeters = 0,
                             arrivalRadiusMeters = 0,
@@ -380,6 +385,17 @@ internal fun ParaApp(
                                 outsideCoverage = false
                             },
                             onOutsideCoverage = { outsideCoverage = true },
+                            onViewportIdle = { viewport, zoom ->
+                                detailViewport = CorridorPoint(
+                                    (viewport.latitudeSouth + viewport.latitudeNorth) / 2,
+                                    (viewport.longitudeWest + viewport.longitudeEast) / 2,
+                                ) to zoom
+                                detailSuggestion = if (zoom >= 11) detailCatalog.firstOrNull { detail ->
+                                    detail.intersects(viewport) && !context.isBundled(detail) &&
+                                        context.installedDetail(detail) == null
+                                } else null
+                            },
+                            initialViewport = detailViewport.takeIf { detailRevision > 0 },
                             homePosition = position,
                             recenterRequested = recenterRequested,
                             onRecenterComplete = { recenterRequested = false },
@@ -398,11 +414,13 @@ internal fun ParaApp(
                             },
                             modifier = Modifier.fillMaxWidth()
                                 .then(if (compactHeight) Modifier.height(260.dp) else Modifier.weight(1f)),
-                        )
+                        ) }
                         Column(
                             Modifier.fillMaxWidth().heightIn(max = 208.dp).verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
+                            OfflineDetailSettings(onMap = true, suggestion = detailSuggestion,
+                                onChanged = { detailRevision++ })
                             if (showLocationHelp) {
                                 Text("Allow precise location to show your position on the map.")
                                 TextButton(onClick = context::openParaAppSettings) { Text("Open Para app settings") }
@@ -543,6 +561,7 @@ internal fun ParaApp(
                             Text("Map and trip data stay on this device.")
                             MapCredits()
                         }
+                        OfflineDetailSettings()
                     }
                 }
             }

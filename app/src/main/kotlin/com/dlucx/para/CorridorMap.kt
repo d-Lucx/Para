@@ -101,6 +101,8 @@ internal fun CorridorMap(
     onRecenter: (() -> Unit)? = null,
     onRecenterComplete: () -> Unit = {},
     liveTrack: Boolean = false,
+    onViewportIdle: ((LatLngBounds, Double) -> Unit)? = null,
+    initialViewport: Pair<CorridorPoint, Double>? = null,
 ) {
     val context = LocalContext.current
     var mapAttempt by remember { mutableIntStateOf(0) }
@@ -152,6 +154,7 @@ internal fun CorridorMap(
     val select by rememberUpdatedState(onPointSelected)
     val snap by rememberUpdatedState(snapToLandmarks)
     val outside by rememberUpdatedState(onOutsideCoverage)
+    val viewportIdle by rememberUpdatedState(onViewportIdle)
     val changeApproach by rememberUpdatedState(onApproachRadiusChanged)
     val changeArrival by rememberUpdatedState(onArrivalRadiusChanged)
     var style by remember { mutableStateOf<Style?>(null) }
@@ -205,6 +208,7 @@ internal fun CorridorMap(
         var active = true
         var benchmark: MapBenchmark? = null
         var listener: Pair<MapLibreMap, MapLibreMap.OnMapClickListener>? = null
+        var idleListener: Pair<MapLibreMap, MapLibreMap.OnCameraIdleListener>? = null
         val failure = MapView.OnDidFailLoadingMapListener { if (active) failed = true }
         view.addOnDidFailLoadingMapListener(failure)
         view.getMapAsync { nativeMap ->
@@ -234,6 +238,13 @@ internal fun CorridorMap(
             }
             nativeMap.addOnMapClickListener(click)
             listener = nativeMap to click
+            if (onViewportIdle != null) {
+                val idle = MapLibreMap.OnCameraIdleListener {
+                    viewportIdle?.invoke(nativeMap.projection.visibleRegion.latLngBounds, nativeMap.cameraPosition.zoom)
+                }
+                nativeMap.addOnCameraIdleListener(idle)
+                idleListener = nativeMap to idle
+            }
             var dragging: String? = null
             view.setOnTouchListener { mapView, event ->
                 when (event.actionMasked) {
@@ -303,6 +314,7 @@ internal fun CorridorMap(
             view.parent?.requestDisallowInterceptTouchEvent(false)
             benchmark?.close()
             listener?.let { (nativeMap, click) -> nativeMap.removeOnMapClickListener(click) }
+            idleListener?.let { (nativeMap, idle) -> nativeMap.removeOnCameraIdleListener(idle) }
             view.setOnTouchListener(null)
             view.removeOnDidFailLoadingMapListener(failure)
         }
@@ -346,7 +358,10 @@ internal fun CorridorMap(
         if (recenterRequested && homePosition != null) return@LaunchedEffect
         view.post {
             if (view.isAttachedToWindow && view.width > 0 && view.height > 0) {
-                nativeMap.moveCamera(CameraUpdateFactory.newLatLngBounds(region?.bounds ?: regionalMaps.bounds, 24))
+                val initial = initialViewport?.let { (point, zoom) ->
+                    CameraUpdateFactory.newLatLngZoom(LatLng(point.latitude, point.longitude), zoom)
+                } ?: CameraUpdateFactory.newLatLngBounds(region?.bounds ?: regionalMaps.bounds, 24)
+                nativeMap.moveCamera(initial)
             }
         }
     }

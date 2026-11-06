@@ -7,7 +7,7 @@ Para is an offline Android commuter alarm. Choose a destination, configure appro
 ## Features implemented
 
 - Destination-first setup with offline search, named landmark selection, custom coordinates, and two adjustable alert rings.
-- MapLibre Native, 18 bundled Philippine regional PMTiles street packs, local labels, and a public offline place index. The app has no internet permission.
+- MapLibre Native, 18 bundled Philippine regional PMTiles street packs, local labels and an offline place index. Optional detail packs download over HTTPS after confirmation and remain available offline.
 - A separate Tagum–Davao detail archive with buildings, land use, water, paths and road hierarchy, plus source-associated entrance selection and explicit pin confirmation. New phone verification is pending; see the map review below.
 - A foreground GPS session, private lock-screen notification by default, approach chime, arrival alarm, and optional backup timer. Backup alerts explicitly do not confirm arrival.
 - Encrypted on-device saved destinations, temporary interrupted-trip recovery, and separately saved trip history with deletion.
@@ -33,6 +33,8 @@ Tap **Locate** to show your position and center the map. Home can show a recent 
 During an active trip, the map shows the confirmed destination, arrival ring, current usable fix and recent recorded GPS trail. Straight-line distance, elapsed time and **End trip** stay below the map. The trip overview retains the full recording.
 
 The 18 regional packs share the pilot's road palette and show category icons, more road labels, and mapped one-way arrows and traffic signals at street zoom. The offline search index is stored as a 23.8 MiB gzip asset and expands to 61.8 MiB on first use. See the [regional build guide](<docs/Regional map build.md>).
+
+Zoom into Davao West or open **Settings → Detailed offline maps** to download its building, park, water and path detail. Tagum North detail is included in the APK. Both packs and their checksummed catalog are available from the [map-data release](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06).
 
 ## Build and verify
 

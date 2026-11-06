@@ -1,6 +1,6 @@
 # Philippine offline street packs
 
-The Android app never downloads map data. Run this pipeline on the development machine, then rebuild the APK. The source PBF and intermediate JSONL/landmark TSV stay outside the repository; the finished regional PMTiles, read-only search database and local font glyphs are packaged assets.
+The base Android maps work offline. Run this pipeline on the development machine to rebuild the bundled coverage. The source PBF and intermediate JSONL and landmark TSV stay outside the repository. Finished regional PMTiles, the read-only search database and local font glyphs are packaged assets.
 
 1. Download the [Geofabrik Philippine OSM extract](https://download.geofabrik.de/asia/philippines.html) to a build directory. Record the source date and SHA-256 in the map notice. Keep the source snapshot for reproducibility.
 2. Prepare build-only dependencies:
@@ -61,3 +61,9 @@ For an independent courtyard-hole check after encoding, run the extractor, final
 To build the adjacent Tagum North detail candidate, pass `--bounds 125.51 7.48 125.89 7.72 --name "Tagum North detail"` to the same extractor. Keep its output and assets in separate staging directories and run the same finalizer, writer and verifier there. The shared edge is latitude 7.48. The archive schema matches the pilot. Area download packaging and delivery are tracked in the [map-first expansion plan](<Para Map-first Expansion Plan.md>).
 
 Build its companion search asset by passing the same `--bounds` to `tools/build-place-index.py` with staged copies of the regional index and place TSV files. The November 6 candidate has 3,928 independently decoded detail tiles, 70,923 building areas, 959 paths and 459 searchable places. Its local staging ZIP contains the detail archive, entrance records, compressed search index, their manifests and an attribution notice.
+
+## Deliver versioned detail packs
+
+Run `tools/package-detail-packs.py` with an output directory, `--version YYYY-MM-DD`, the corresponding GitHub release download URL in `--base-url`, and one `--pack ID DETAIL_DIR SEARCH_DIR` argument per pack. Run independent PMTiles decoding before packaging. The packager verifies the map and search hashes, SQLite integrity, bounds and entrance count and emits versioned ZIPs plus `catalog.json`.
+
+Publish the ZIPs and catalog in a map-data release. Download them anonymously and verify the catalog checksums before copying the same catalog into `app/src/main/assets/detail-catalog.json`. Para uses this bundled catalog to offer a download at detail zoom or in Settings. It requests the selected archive by URL after confirmation and verifies it before publishing the files together. The app can render installed geometry and use its entrance records offline. The existing nationwide search catalog continues to cover these same source snapshots.

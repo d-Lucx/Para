@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "packs": [
+    {
+      "id": "davao-west",
+      "name": "Davao West",
+      "version": "2026-11-06",
+      "bounds": [
+        125.27,
+        7,
+        125.51,
+        7.26
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06/davao-west-2026-11-06.zip",
+      "bytes": 4233408,
+      "sha256": "df1b81b3ebb3ddb2b3641af004a958687c71f011f668761937a3aae11686a524",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 778,
+      "tiles": 2442,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "tagum-north",
+      "name": "Tagum North detail",
+      "version": "2026-11-06",
+      "bounds": [
+        125.51,
+        7.48,
+        125.89,
+        7.72
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06/tagum-north-2026-11-06.zip",
+      "bytes": 6091860,
+      "sha256": "30484a827aeec825c69f5a130e1bf9104aa0d1997c3bbabfdcc8ff522317f92d",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 459,
+      "tiles": 3928,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    }
+  ]
+}

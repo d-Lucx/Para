@@ -19,6 +19,25 @@ internal class PilotMaps private constructor(val packs: List<DetailMapPack>, pri
 
     companion object {
         @Volatile private var cached: PilotMaps? = null
+        fun refreshDownloads() = synchronized(this) { cached = null }
+
+        private fun pack(id: String, file: java.io.File, index: JSONObject): DetailMapPack {
+            val bounds = index.getJSONArray("bounds")
+            val west = bounds.getDouble(0)
+            val south = bounds.getDouble(1)
+            val east = bounds.getDouble(2)
+            val north = bounds.getDouble(3)
+            val polygon = """{"type":"Polygon","coordinates":[[[$west,$south],[$east,$south],[$east,$north],[$west,$north],[$west,$south]]]}"""
+            return DetailMapPack(id, "pmtiles://" + Uri.fromFile(file), polygon)
+        }
+
+        private fun entrances(data: JSONArray): List<MappedEntrance> = List(data.length()) { i ->
+            val item = data.getJSONObject(i)
+            MappedEntrance(item.getString("id"), item.getString("landmark_id"),
+                CorridorPoint(item.getDouble("latitude"), item.getDouble("longitude")),
+                item.getString("kind"), item.getString("access"))
+        }
+
         fun load(context: Context): PilotMaps = cached ?: synchronized(this) {
             cached ?: run {
                 val directories = listOf("pilot" to "pilot") +
@@ -28,24 +47,24 @@ internal class PilotMaps private constructor(val packs: List<DetailMapPack>, pri
                     val hash = index.getString("sha256")
                     val file = context.offlineAssetFile("$directory/detail.pmtiles", "$id-${hash.take(12)}.pmtiles",
                         index.getLong("bytes"), hash)
-                    val bounds = index.getJSONArray("bounds")
-                    val west = bounds.getDouble(0)
-                    val south = bounds.getDouble(1)
-                    val east = bounds.getDouble(2)
-                    val north = bounds.getDouble(3)
-                    val polygon = """{"type":"Polygon","coordinates":[[[$west,$south],[$east,$south],[$east,$north],[$west,$north],[$west,$south]]]}"""
-                    DetailMapPack(id, "pmtiles://" + Uri.fromFile(file), polygon) to file.name
+                    pack(id, file, index) to file.name
                 }
                 val entries = directories.flatMap { (_, directory) ->
                     val data = context.assets.open("$directory/entrances.json").bufferedReader().use { JSONArray(it.readText()) }
-                    List(data.length()) { i ->
-                        val item = data.getJSONObject(i)
-                        MappedEntrance(item.getString("id"), item.getString("landmark_id"),
-                            CorridorPoint(item.getDouble("latitude"), item.getDouble("longitude")),
-                            item.getString("kind"), item.getString("access"))
-                    }
+                    entrances(data)
                 }
-                PilotMaps(files.map { it.first }, entries).also { result ->
+                val downloaded = context.detailCatalog().mapNotNull { detail ->
+                    val directory = context.installedDetail(detail, allowOlder = true) ?: return@mapNotNull null
+                    if (context.isBundled(detail)) return@mapNotNull null
+                    runCatching {
+                        val index = JSONObject(directory.resolve("index.json").readText())
+                        val file = directory.resolve("detail.pmtiles")
+                        check(index.getInt("schema") == 1 && file.length() == index.getLong("bytes"))
+                        pack(detail.id, file, index) to entrances(JSONArray(directory.resolve("entrances.json").readText()))
+                    }.getOrNull()
+                }
+                PilotMaps(files.map { it.first } + downloaded.map { it.first },
+                    entries + downloaded.flatMap { it.second }).also { result ->
                     context.noBackupFilesDir.listFiles()?.filter { file ->
                         files.any { (pack, name) ->
                             file.name != name && file.name.matches(Regex("${Regex.escape(pack.id)}-[0-9a-f]{12}\\.pmtiles"))

@@ -65,8 +65,11 @@ Acceptance fixtures should cover a reversed one-way, a forbidden turn, a grade-s
 - [x] Generate and validate the adjacent Tagum North detail candidate with 3,928 tiles and a 459-place search index.
 - [x] Bundle Tagum North and render both detail areas with the same style pipeline.
 - [x] Verify the new detail around New Corella on the Infinix. The same check confirmed the destination draft and both alarm radii survived changing text size from 100% to 200%.
+- [x] Generate Davao West with 2,442 independently decoded tiles, 10,870 building areas and 778 searchable places.
+- [x] Implement the versioned ZIP catalog and confirmed Android downloads from Home and Settings, with checksum verification and offline installation.
+- [x] Publish Davao West, Tagum North and the catalog as [versioned map data](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06). Download all assets anonymously and verify their hashes.
 - [ ] Verify shared boundaries on device when downloaded pack loading is available.
-- [ ] Implement the area catalog and downloader, then verify cancellation, disk errors, integrity, version changes, boundary coverage and offline reopen.
+- [ ] Finish device verification for cancellation, disk errors, version changes and boundary coverage. Expand detailed coverage beyond the first two published areas.
 - [ ] Verify an offline driving graph and route preview on the pilot and a cross-pack fixture. Record measured startup, frame cadence, search, disk and package-size changes before enabling broad rollout.
 
 ## Revised Stitch drafts
