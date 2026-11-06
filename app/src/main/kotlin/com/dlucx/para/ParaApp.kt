@@ -62,6 +62,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -162,12 +164,12 @@ internal fun ParaApp(
     var page by rememberSaveable { mutableStateOf(Page.Home) }
     var setupOpen by rememberSaveable { mutableStateOf(false) }
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
-    var pinLatitude by rememberSaveable { mutableStateOf<Double?>(null) }
-    var pinLongitude by rememberSaveable { mutableStateOf<Double?>(null) }
-    var pinLabel by rememberSaveable { mutableStateOf<String?>(null) }
+    val owner = LocalActivity.current as ViewModelStoreOwner
+    val setupModel = remember(owner) { ViewModelProvider(owner)[SetupDraftModel::class.java] }
+    val pinLabel = setupModel.homeLabel
     var setupFromPin by rememberSaveable { mutableStateOf(false) }
     var savedExpanded by rememberSaveable { mutableStateOf(false) }
-    val mapPin = pinLatitude?.let { lat -> pinLongitude?.let { lon -> CorridorPoint(lat, lon) } }
+    val mapPin = setupModel.homePoint
     var saved by remember { mutableStateOf<List<SavedDestination>?>(null) }
     var loadFailed by remember { mutableStateOf(false) }
     var loadAttempt by remember { mutableStateOf(0) }
@@ -199,9 +201,9 @@ internal fun ParaApp(
             setupOpen = false
             page = Page.Home
             pendingDeletion = null
-            pinLatitude = null
-            pinLongitude = null
-            pinLabel = null
+            setupModel.homePoint = null
+            setupModel.homeLabel = null
+            setupModel.draft = null
         }
     }
     LaunchedEffect(destinations, loadAttempt) {
@@ -211,7 +213,10 @@ internal fun ParaApp(
     }
 
     fun closeSetup() {
-        if (!writing) setupOpen = false
+        if (!writing) {
+            setupOpen = false
+            setupModel.draft = null
+        }
     }
 
     fun updateDestinations(closeOnSuccess: Boolean, operation: () -> List<SavedDestination>) {
@@ -221,7 +226,10 @@ internal fun ParaApp(
             val result = withContext(Dispatchers.IO) { runCatching(operation) }
             result.onSuccess {
                 saved = it
-                if (closeOnSuccess) setupOpen = false
+                if (closeOnSuccess) {
+                    setupOpen = false
+                    setupModel.draft = null
+                }
             }.onFailure {
                 Toast.makeText(context, R.string.destination_write_failed, Toast.LENGTH_LONG).show()
             }
@@ -281,6 +289,7 @@ internal fun ParaApp(
         val entries = saved
         if (setupOpen && entries != null) {
             DestinationSetup(
+                setupModel = setupModel,
                 initialDestination = entries.firstOrNull { it.id == editingId }?.draft,
                 initialPin = mapPin.takeIf { setupFromPin },
                 initialPinLabel = pinLabel.takeIf { setupFromPin },
@@ -366,9 +375,8 @@ internal fun ParaApp(
                             approachRadiusMeters = 0,
                             arrivalRadiusMeters = 0,
                             onPointSelected = { point, label ->
-                                pinLatitude = point.latitude
-                                pinLongitude = point.longitude
-                                pinLabel = label
+                                setupModel.homePoint = point
+                                setupModel.homeLabel = label
                                 outsideCoverage = false
                             },
                             onOutsideCoverage = { outsideCoverage = true },

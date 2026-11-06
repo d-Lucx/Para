@@ -47,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -59,8 +60,38 @@ internal data class DestinationDraft(
     val backupMinutes: Int? = null,
 )
 
+internal class SetupDraftModel : ViewModel() {
+    var homePoint by mutableStateOf<CorridorPoint?>(null)
+    var homeLabel by mutableStateOf<String?>(null)
+    var draft: SetupDraftState? = null
+}
+
+internal class SetupDraftState(
+    initial: DestinationDraft?,
+    pin: CorridorPoint?,
+    label: String?,
+    maps: PhilippineMaps,
+    catalog: StopCatalog,
+) {
+    val query = mutableStateOf("")
+    val searching = mutableStateOf(false)
+    val point = mutableStateOf(initial?.let { CorridorPoint(it.latitude, it.longitude) } ?: pin)
+    val name = mutableStateOf(initial?.name ?: label ?: if (pin != null) "Custom pin" else "")
+    val approach = mutableStateOf((initial?.approachMeters ?: 1500).toString())
+    val arrival = mutableStateOf((initial?.arrivalMeters ?: 300).toString())
+    val backupEnabled = mutableStateOf(initial?.backupMinutes != null)
+    val backupMinutes = mutableStateOf(initial?.backupMinutes?.toString().orEmpty())
+    val region = mutableStateOf(pin?.let(maps::regionAt))
+    val focusSelection = mutableStateOf(initial != null || pin != null)
+    val confirmed = mutableStateOf(initial != null)
+    val candidate = mutableStateOf(pin?.takeIf { label != null }?.let(catalog::at)?.takeIf { it.name == label })
+    val adjusting = mutableStateOf(false)
+    val entranceSelected = mutableStateOf(false)
+}
+
 @Composable
 internal fun DestinationSetup(
+    setupModel: SetupDraftModel,
     initialDestination: DestinationDraft?,
     onBack: () -> Unit,
     onSave: (DestinationDraft) -> Unit,
@@ -83,41 +114,26 @@ internal fun DestinationSetup(
     }
     val (catalog, maps) = loaded
     val focus = LocalFocusManager.current
-    var query by remember { mutableStateOf("") }
-    var searching by remember { mutableStateOf(false) }
+    val state = setupModel.draft ?: SetupDraftState(initialDestination, initialPin, initialPinLabel, maps, catalog)
+        .also { setupModel.draft = it }
+    var query by state.query
+    var searching by state.searching
     val setupScroll = rememberScrollState()
     val largeText = LocalDensity.current.fontScale > 1.3f
-    var point by remember(initialDestination, initialPin) {
-        mutableStateOf(initialDestination?.let { CorridorPoint(it.latitude, it.longitude) } ?: initialPin)
-    }
-    var name by remember(initialDestination, initialPin, initialPinLabel) {
-        mutableStateOf(initialDestination?.name ?: initialPinLabel ?: if (initialPin != null) "Custom pin" else "")
-    }
-    var approach by remember(initialDestination) {
-        mutableStateOf((initialDestination?.approachMeters ?: 1500).toString())
-    }
-    var arrival by remember(initialDestination) {
-        mutableStateOf((initialDestination?.arrivalMeters ?: 300).toString())
-    }
-    var backupEnabled by remember(initialDestination) {
-        mutableStateOf(initialDestination?.backupMinutes != null)
-    }
-    var backupMinutes by remember(initialDestination) {
-        mutableStateOf(initialDestination?.backupMinutes?.toString().orEmpty())
-    }
+    var point by state.point
+    var name by state.name
+    var approach by state.approach
+    var arrival by state.arrival
+    var backupEnabled by state.backupEnabled
+    var backupMinutes by state.backupMinutes
     var outsideCoverage by remember { mutableStateOf(false) }
-    var region by remember(initialPin, maps) { mutableStateOf(initialPin?.let(maps::regionAt)) }
+    var region by state.region
     var regionsOpen by remember { mutableStateOf(false) }
-    var focusSelection by remember(initialDestination, initialPin) {
-        mutableStateOf(initialDestination != null || initialPin != null)
-    }
-    var confirmed by remember(initialDestination) { mutableStateOf(initialDestination != null) }
-    var candidate by remember(initialPin, initialPinLabel, catalog) {
-        mutableStateOf(initialPin?.takeIf { initialPinLabel != null }
-            ?.let(catalog::at)?.takeIf { it.name == initialPinLabel })
-    }
-    var adjusting by remember { mutableStateOf(false) }
-    var entranceSelected by remember { mutableStateOf(false) }
+    var focusSelection by state.focusSelection
+    var confirmed by state.confirmed
+    var candidate by state.candidate
+    var adjusting by state.adjusting
+    var entranceSelected by state.entranceSelected
 
     val selectedPoint = remember(point, maps) { point?.takeIf(maps::covers) }
     val confirming = selectedPoint != null && !confirmed && !searching && query.isBlank()

@@ -199,7 +199,7 @@ internal fun CorridorMap(
     val approach = if (colors.surface.luminance() < 0.3f) "#FFB84C" else "#875000"
     val mapStyle = remember(archiveUrl, background, primary, outline, minor, water, approach, arrival, land, landAlternate) {
         styleJson(archiveUrl, streetPacks, background, primary, outline, minor, water, approach, arrival, land, landAlternate,
-            loaded.pilot.url, colors.surface.luminance() < 0.3f)
+            loaded.pilot.packs, colors.surface.luminance() < 0.3f)
     }
     DisposableEffect(view, mapStyle, readOnly) {
         var active = true

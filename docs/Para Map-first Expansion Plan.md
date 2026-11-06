@@ -20,6 +20,8 @@ The rider approved the [live trip Stitch layout](designs/live-trip-map-light.png
 
 Apply the pilot’s geographic colors and road hierarchy throughout the Philippines. Detailed packs should use the same schema and style as Tagum–Davao. Actual coverage depends on mapped source features.
 
+The app now loads bundled detail archives from the same renderer. Tagum North is the first extension and adds 5.7 MiB of PMTiles with buildings, water, land use, paths and detailed roads. The other regions continue to use the nationwide street packs. Nationwide detail should be rolled out through the approved area-download flow so the base install does not grow with every region.
+
 | Feature | Data and rendering work |
 | --- | --- |
 | Buildings, water, parks and paths | Generalize the pilot extractor, normalize polygon relations and holes, and preserve continuity across pack boundaries. Use zoom thresholds to control density. |
@@ -61,7 +63,9 @@ Acceptance fixtures should cover a reversed one-way, a forbidden turn, a grade-s
 - [x] Refresh the 18 bundled street packs with shared road styling, category icons, one-way arrows, traffic signals and more street labels.
 - [x] Smoke-test the new street symbols on Android in Davao and Manila. Track remaining pin and direction checks in the acceptance checklist.
 - [x] Generate and validate the adjacent Tagum North detail candidate with 3,928 tiles and a 459-place search index.
-- [ ] Verify Tagum North rendering and the shared boundary on device when downloaded pack loading is available.
+- [x] Bundle Tagum North and render both detail areas with the same style pipeline.
+- [x] Verify the new detail around New Corella on the Infinix. The same check confirmed the destination draft and both alarm radii survived changing text size from 100% to 200%.
+- [ ] Verify shared boundaries on device when downloaded pack loading is available.
 - [ ] Implement the area catalog and downloader, then verify cancellation, disk errors, integrity, version changes, boundary coverage and offline reopen.
 - [ ] Verify an offline driving graph and route preview on the pilot and a cross-pack fixture. Record measured startup, frame cadence, search, disk and package-size changes before enabling broad rollout.
 

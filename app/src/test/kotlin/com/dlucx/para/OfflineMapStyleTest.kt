@@ -15,7 +15,11 @@ class OfflineMapStyleTest {
         val manifest = JsonParser.parseString(File("src/main/assets/streets/index.json").readText()).asJsonArray
         val packs = manifest.map { it.asJsonObject.get("id").asString }.map { StreetPack(it, "pmtiles://file:///streets-$it.pmtiles") }
         val json = styleJson("pmtiles://file:///corridor.pmtiles", packs, "#FFFFFF", "#006A68", "#6E7B7A",
-            "#CDD7D6", "#99C8DE", "#875000", "#B4232B", "#EFF2F9", "#E8ECF2", "pmtiles://file:///pilot.pmtiles", dark)
+            "#CDD7D6", "#99C8DE", "#875000", "#B4232B", "#EFF2F9", "#E8ECF2",
+            listOf(DetailMapPack("pilot", "pmtiles://file:///pilot.pmtiles", PilotBoundsJson),
+                DetailMapPack("tagum-north", "pmtiles://file:///tagum-north.pmtiles",
+                    """{"type":"Polygon","coordinates":[[[125.51,7.48],[125.89,7.48],[125.89,7.72],[125.51,7.72],[125.51,7.48]]]}""")),
+            dark)
         val style = JsonParser.parseString(json).asJsonObject
         val layers = style.getAsJsonArray("layers").map { it.asJsonObject }
         val ids = layers.map { it.get("id").asString }

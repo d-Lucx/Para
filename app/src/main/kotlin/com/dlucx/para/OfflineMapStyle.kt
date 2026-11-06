@@ -6,8 +6,9 @@ internal const val PositionOverlay = "para-position"
 internal fun styleJson(
     archiveUrl: String, streetPacks: List<StreetPack>, background: String, primary: String, outline: String, minor: String,
     water: String, approach: String, arrival: String, land: String, landAlternate: String,
-    pilotUrl: String, dark: Boolean,
+    detailPacks: List<DetailMapPack>, dark: Boolean,
 ): String {
+    val outsideDetail = detailPacks.joinToString("") { """["!",["within",${it.boundsJson}]],""" }
     fun line(id: String, source: String, kind: String, color: String, width: Double, dash: Boolean = false): String {
         val sourceLayer = if (source == "corridor") ""","source-layer":"lines"""" else ""
         val dashPaint = if (dash) ""","line-dasharray":[2,2]""" else ""
@@ -45,7 +46,7 @@ internal fun styleJson(
     }
     val streetLabels = streetPacks.flatMap { pack -> listOf(
         """{"id":"road-names-${pack.id}","type":"symbol","source":"streets-${pack.id}","source-layer":"roads","minzoom":12,
-            "filter":["all",["!",["within",$PilotBoundsJson]],["in",["get","kind"],["literal",["main","local"]]]],
+            "filter":["all",$outsideDetail["in",["get","kind"],["literal",["main","local"]]]],
             "layout":{"symbol-placement":"line","text-field":["get","name"],"text-font":["Inter-Regular"],"text-size":11},
             "paint":{"text-color":"$outline","text-halo-color":"$land","text-halo-width":1.5}}""",
         """{"id":"road-oneway-${pack.id}","type":"symbol","source":"streets-${pack.id}","source-layer":"roads","minzoom":16,
@@ -71,10 +72,12 @@ internal fun styleJson(
     ), casing = true) + streetLayers(listOf(
         "local" to if (dark) "#656A6C" else "#FFFFFF",
         "main" to if (dark) "#B39458" else "#FFE3A0",
-    )) + listOf(
-        """{"id":"pilot-base","type":"fill","source":"pilot-bounds","minzoom":11,
-            "paint":{"fill-color":"${if (dark) "#2B302D" else "#F7F5ED"}"}}""",
-    ) + pilotAreaLayers(dark) + streetLayers(listOf("water" to water, "rail" to outline)) + pilotRoadLayers(dark) + streetLabels + listOf(
+    )) + detailPacks.map { pack ->
+        """{"id":"${pack.id}-base","type":"fill","source":"${pack.id}-bounds","minzoom":11,
+            "paint":{"fill-color":"${if (dark) "#2B302D" else "#F7F5ED"}"}}"""
+    } + detailPacks.flatMap { pilotAreaLayers(dark, it.id) } +
+        streetLayers(listOf("water" to water, "rail" to outline)) +
+        detailPacks.flatMap { pilotRoadLayers(dark, it.id) } + streetLabels + listOf(
         line("coverage", Overlay, "boundary", outline, 2.0, dash = true),
         line("track", Overlay, "track", primary, 3.5),
         line("approach", Overlay, "approach", approach, 2.0, dash = true),
@@ -104,10 +107,13 @@ internal fun styleJson(
                 "icon-allow-overlap":true,"icon-ignore-placement":true}}""",
     )
     val streetSources = streetPacks.joinToString(",") { """"streets-${it.id}":{"type":"vector","url":"${it.url}"}""" }
+    val detailSources = detailPacks.joinToString("") {
+        """"${it.id}":{"type":"vector","url":"${it.url}"},
+        "${it.id}-bounds":{"type":"geojson","data":{"type":"Feature","geometry":${it.boundsJson},"properties":{}}},"""
+    }
     return """{"version":8,"glyphs":"asset://glyphs/{fontstack}/{range}.pbf","sources":{
         $streetSources,
-        "pilot":{"type":"vector","url":"$pilotUrl"},
-        "pilot-bounds":{"type":"geojson","data":{"type":"Feature","geometry":$PilotBoundsJson,"properties":{}}},
+        $detailSources
         "corridor":{"type":"vector","url":"$archiveUrl"},
         "regions":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}},
         "region-names":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}},
