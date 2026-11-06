@@ -50,7 +50,8 @@ Acceptance fixtures should cover a reversed one-way, a forbidden turn, a grade-s
 - [x] Generate and inspect the light-mode [route preview](designs/map-first-route-light.png) and [download prompt](designs/map-first-download-light.png) in Stitch.
 - [x] Confirm the revised layouts with the rider.
 - [x] Implement map-first Home with the bundled map, a destination pin and handoff to the existing confirmation and alarm setup screens.
-- [ ] Verify the Home handoff, saved destinations, large text and TalkBack on a device.
+- [x] Smoke-test the Home custom-pin handoff, landmark search and saved destinations disclosure on the Infinix.
+- [ ] Finish the [device verification checklist](<Para v1 Acceptance Checklist.md>), including large text and TalkBack.
 - [ ] Add the foreground position marker and recenter control.
 - [ ] Extend the source schema and deliver the shared style with category icons, one-way arrows, traffic signals and richer road names. Validate one pilot pack and an adjacent pack before the national rebuild.
 - [ ] Implement the area catalog and downloader, then verify cancellation, disk errors, integrity, version changes, boundary coverage and offline reopen.

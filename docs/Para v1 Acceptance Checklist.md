@@ -77,7 +77,8 @@ Scope and Organic Maps references are recorded in the [map improvement plan](<Pa
 The [map-first expansion plan](<Para Map-first Expansion Plan.md>) tracks the approved Stitch layouts and the remaining nationwide detail, download and driving-route work.
 
 - [x] Open Home to the offline map. A landmark or custom pin opens the existing confirmation flow through **Set arrival alarm**. Search, coordinate entry and saved destinations remain available.
-- [ ] Verify the map-first entry points on a phone, including a custom pin, a landmark with entrances, saved destinations, large text and TalkBack.
+- [x] Infinix X6852, debug build `ff5c630`. Open the nationwide map, reject a tap outside coverage, confirm a custom pin through alarm setup, retain the pin on Back, and expand saved destinations. Search for Polyclinic Davao and verify both mapped entrances appear.
+- [ ] Verify a landmark tap directly from Home, coordinate entry, saved destination actions, large text and TalkBack on the map-first build.
 
 - [x] Record the map review decisions and collect project guides in `docs/`, with a root README and documentation index.
 - [x] Locate the existing Para Stitch project, verify the cached map-source SHA-256 against its notice, and record the unchanged pack/search baseline in the [pilot map design review](<Para Pilot Map Design Review.md>). ADB detects the Infinix; no new app/device acceptance check is implied.
