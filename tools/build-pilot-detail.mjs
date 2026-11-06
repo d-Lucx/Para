@@ -1,12 +1,13 @@
 // node tools/build-pilot-detail.mjs <tooling> <extracted> <assets>
-import { createReadStream, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, closeSync, createReadStream, mkdirSync, mkdtempSync, openSync, readFileSync,
+  readSync, rmdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { createRequire } from 'node:module';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
-const [tooling, input, assets] = process.argv.slice(2);
+const [tooling, input, assets, mode] = process.argv.slice(2);
 const require = createRequire(resolve(tooling, 'package.json'));
 const { default: geojsonvt } = await import(pathToFileURL(require.resolve('geojson-vt')).href);
 const { fromGeojsonVt } = require('vt-pbf');
@@ -16,43 +17,60 @@ if (!Object.hasOwn(source.counts, 'duplicate_member_areas_removed')) throw Error
 const minZoom = { landuse: 11, water: 11, buildings: 15, paths: 14, 'road-detail': 11 };
 const regional = Boolean(source.coverage);
 const firstZoom = 11;
-const byLayer = Object.fromEntries(Object.keys(minZoom).map(layer => [layer, []]));
+const tileBuffer = 64;
+const groupZoom = 9;
 const inputPath = join(input, 'pilot.geojson');
-const stream = createReadStream(inputPath, {encoding:'utf8'});
-const lines = createInterface({input:stream,crlfDelay:Infinity});
-let firstLine = true;
-let closed = false;
-function collect(feature) {
-  byLayer[feature.properties.layer].push(feature);
+const start = '{"type":"FeatureCollection","features":[';
+const prefix = Buffer.alloc(start.length + 1);
+const fd = openSync(inputPath, 'r');
+try {
+  readSync(fd, prefix);
+} finally {
+  closeSync(fd);
 }
-for await (const line of lines) {
-  if (firstLine) {
-    firstLine = false;
-    if (line === '{"type":"FeatureCollection","features":[') continue;
-    for (const feature of JSON.parse(readFileSync(inputPath)).features) collect(feature);
-    closed = true;
+const streamed = prefix.subarray(0,-1).toString() === start && [10,13].includes(prefix.at(-1));
+const legacy = streamed ? null : JSON.parse(readFileSync(inputPath)).features;
+async function* featureRows(path, token = '') {
+  const stream = createReadStream(path, {encoding:'utf8'});
+  try {
+    for await (const line of createInterface({input:stream,crlfDelay:Infinity})) {
+      if (line === ']}') return;
+      if (line && line !== start && line.includes(token)) yield line.endsWith(',') ? line.slice(0,-1) : line;
+    }
+  } finally {
     stream.destroy();
-    break;
   }
-  if (line === ']}') {
-    closed = true;
-    break;
-  }
-  if (line) collect(JSON.parse(line.endsWith(',') ? line.slice(0,-1) : line));
+  throw Error('Truncated feature collection');
 }
-if (!closed) throw Error('Truncated feature collection');
-const indexes = Object.fromEntries(Object.keys(minZoom).map(layer => {
-  const index = geojsonvt({type:'FeatureCollection',features:byLayer[layer]},
-    {maxZoom:16,indexMaxZoom:regional ? firstZoom : 16,indexMaxPoints:0,tolerance:1,buffer:64});
-  delete byLayer[layer];
-  return [layer,index];
-}));
-const coordinates = new Map();
-for (const index of Object.values(indexes)) for (const tile of index.tileCoords) {
-  if (tile.z >= firstZoom) coordinates.set(zxyToTileId(tile.z,tile.x,tile.y),tile);
+async function loadLayer(path, layer) {
+  if (legacy) return legacy.filter(feature => feature.properties.layer === layer);
+  const features = [];
+  for await (const row of featureRows(path, `"layer":"${layer}"`)) {
+    const feature = JSON.parse(row);
+    if (feature.properties.layer === layer) features.push(feature);
+  }
+  return features;
+}
+async function tileGroup(path, counts, group) {
+  const indexes = {};
+  for (const layer of Object.keys(minZoom)) {
+    const features = await loadLayer(path, layer);
+    if (features.length !== (counts[layer] ?? 0)) throw Error(`Feature count mismatch for ${layer}`);
+    indexes[layer] = geojsonvt({type:'FeatureCollection',features},
+      {maxZoom:16,indexMaxZoom:regional ? firstZoom : 16,indexMaxPoints:0,tolerance:1,buffer:tileBuffer});
+  }
+  const coordinates = new Map();
+  for (const index of Object.values(indexes)) for (const tile of index.tileCoords) {
+    if (tile.z < firstZoom) continue;
+    const scale = 2**(tile.z-groupZoom);
+    if (!group || (Math.floor(tile.x/scale)===group.x && Math.floor(tile.y/scale)===group.y)) {
+      coordinates.set(zxyToTileId(tile.z,tile.x,tile.y),tile);
+    }
+  }
+  for (const {z,x,y} of coordinates.values()) encode(indexes,z,x,y);
 }
 const tiles = [];
-function encode(z, x, y) {
+function encode(indexes, z, x, y) {
   const layers = {};
   let hasPoints = false;
   for (const [layer,index] of Object.entries(indexes)) {
@@ -67,7 +85,7 @@ function encode(z, x, y) {
   }
   if (regional) {
     if (hasPoints && z < 16) {
-      for (let dy=0;dy<2;dy++) for (let dx=0;dx<2;dx++) encode(z+1,x*2+dx,y*2+dy);
+      for (let dy=0;dy<2;dy++) for (let dx=0;dx<2;dx++) encode(indexes,z+1,x*2+dx,y*2+dy);
     }
     // geojson-vt 4.0.2 retains visited tiles. Release a completed subtree once
     // its descendants have been encoded; its siblings keep their own sources.
@@ -75,7 +93,67 @@ function encode(z, x, y) {
     for (const index of Object.values(indexes)) delete index.tiles[tileKey];
   }
 }
-for (const {z,x,y} of coordinates.values()) encode(z,x,y);
+function groupBounds(coordinates) {
+  let west=Infinity, east=-Infinity, south=Infinity, north=-Infinity;
+  function visit(points) {
+    if (typeof points[0] === 'number') {
+      west=Math.min(west,points[0]); east=Math.max(east,points[0]);
+      south=Math.min(south,points[1]); north=Math.max(north,points[1]);
+    } else for (const child of points) visit(child);
+  }
+  visit(coordinates);
+  if (!Number.isFinite(west)) throw Error('Cannot partition a feature without coordinates');
+  const projectX = longitude => longitude/360 + 0.5;
+  const projectY = latitude => (1-Math.asinh(Math.tan(latitude*Math.PI/180))/Math.PI)/2;
+  const margin = tileBuffer/4096/2**firstZoom + Number.EPSILON;
+  const group = position => Math.floor(position*2**groupZoom);
+  return [group(projectX(west)-margin),group(projectY(north)-margin),
+    group(projectX(east)+margin),group(projectY(south)+margin)];
+}
+async function tileLargeRegion() {
+  mkdirSync(assets,{recursive:true});
+  const temporary = mkdtempSync(join(resolve(assets),'.tile-groups-'));
+  const groups = new Map();
+  const totals = {};
+  try {
+    // Adjacent groups share buffered input, but each owns disjoint output tiles.
+    for await (const row of featureRows(inputPath)) {
+      const feature = JSON.parse(row);
+      const layer = feature.properties.layer;
+      totals[layer] = (totals[layer] ?? 0) + 1;
+      const [left,top,right,bottom] = groupBounds(feature.geometry.coordinates);
+      for (let x=left;x<=right;x++) for (let y=top;y<=bottom;y++) {
+        const key = `${x}-${y}`;
+        if (!groups.has(key)) groups.set(key,{x,y,path:join(temporary,key),rows:'',counts:{}});
+        const group = groups.get(key);
+        group.counts[layer] = (group.counts[layer] ?? 0) + 1;
+        group.rows += row + '\n';
+        if (group.rows.length >= 128*1024) {
+          appendFileSync(group.path,group.rows);
+          group.rows = '';
+        }
+      }
+    }
+    for (const layer of Object.keys(minZoom)) {
+      if ((totals[layer] ?? 0) !== (source.counts[layer] ?? 0)) throw Error(`Feature count mismatch for ${layer}`);
+    }
+    for (const group of groups.values()) {
+      appendFileSync(group.path,group.rows + ']}\n');
+      group.rows = '';
+      await tileGroup(group.path,group.counts,group);
+    }
+  } finally {
+    for (const {path} of groups.values()) {
+      try { unlinkSync(path); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
+    rmdirSync(temporary);
+  }
+}
+if (streamed && regional && (mode==='--partition' || statSync(inputPath).size > 192*1024*1024)) {
+  await tileLargeRegion();
+} else {
+  await tileGroup(inputPath,source.counts);
+}
 tiles.sort((a,b) => a.id-b.id);
 let offset = 0;
 for (const tile of tiles) { tile.offset = offset; offset += tile.bytes.length; }

@@ -122,7 +122,10 @@ def main():
         if new_id not in ids or old_id not in packs or old_id in ids:
             parser.error('--replace requires a new pack ID and a previous catalog ID')
         packs[new_id].setdefault('replaces', []).append(old_id)
-    (args.output / 'catalog.json').write_text(json.dumps(dict(schema=1, packs=list(packs.values())), indent=2) + '\n', encoding='utf8')
+    catalog = args.output / 'catalog.json'
+    staging = catalog.with_suffix('.tmp')
+    staging.write_text(json.dumps(dict(schema=1, packs=list(packs.values())), indent=2) + '\n', encoding='utf8')
+    staging.replace(catalog)
     for pack in new_packs:
         print(f"{pack['id']}: {pack['bytes']:,} bytes, {pack['tiles']:,} tiles, {pack['places']:,} places")
 
