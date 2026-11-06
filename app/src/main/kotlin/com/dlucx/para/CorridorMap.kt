@@ -215,15 +215,16 @@ internal fun CorridorMap(
                     val pixel = nativeMap.projection.toScreenLocation(location)
                     val hit = 10f * context.resources.displayMetrics.density
                     val namedLayers = listOf("national-labels", "pilot-stop-labels", "national-points", "pilot-stop-points", "places") +
-                        streetPacks.flatMap { listOf("landmarks-${it.id}", "landmark-points-${it.id}",
-                            "landmarks-detail-${it.id}", "landmark-points-detail-${it.id}") }
+                        streetPacks.flatMap { listOf("landmarks-${it.id}", "landmarks-detail-${it.id}") }
                     val named = if (snap) nativeMap.queryRenderedFeatures(
                         RectF(pixel.x - hit, pixel.y - hit, pixel.x + hit, pixel.y + hit),
                         *namedLayers.toTypedArray(),
                     ).firstOrNull() else null
                     val anchor = named?.geometry() as? Point
                     val chosen = if (anchor == null) point else CorridorPoint(anchor.latitude(), anchor.longitude())
-                    if (regionalMaps.covers(chosen)) select(chosen, named?.getStringProperty("name")) else outside()
+                    val label = named?.getStringProperty("name")?.takeIf(String::isNotBlank)
+                        ?: named?.getStringProperty("kind")
+                    if (regionalMaps.covers(chosen)) select(chosen, label) else outside()
                 }
                 true
             }
@@ -264,6 +265,7 @@ internal fun CorridorMap(
             if (context.isMapBenchmark()) benchmark = MapBenchmark(view, nativeMap)
             nativeMap.setStyle(Style.Builder().fromJson(mapStyle)) { loaded ->
                 if (!active) return@setStyle
+                loaded.addStreetSymbols()
                 loaded.addImage("para-heading-arrow", headingArrow(colors.onPrimary.toArgb()))
                 val labels = context.assets.open("tagum-davao-place-labels.json")
                     .bufferedReader().use { JSONArray(it.readText()) }

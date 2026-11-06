@@ -82,6 +82,10 @@ The [map-first expansion plan](<Para Map-first Expansion Plan.md>) tracks the ap
 - [x] Add **Locate** to Home. With precise location permission it requests a foreground GPS fix and recenters once. The position shows its accuracy and uses an arrow when a reliable compass or travel bearing is available.
 - [x] On the Infinix, **Locate** showed **Waiting for GPS** while the map stayed visible. After switching to Settings and back, Home cleared the request. No usable fix arrived during the smoke test.
 - [ ] Verify live recenter, heading, loss of fix and permission denial on device.
+- [x] Regenerate all 18 bundled street packs with road-reference fallback, forward and reverse one-way tags, and categorized landmarks and signals. Regenerate the matching offline search index.
+- [x] Infinix offline smoke test. Davao displayed food and clinic icons and kept both Polyclinic entrances. Manila displayed the shared road palette, street labels and transit icons.
+- [x] Infinix street-zoom check near Manila City Hall. Opposing one-way arrows, traffic-signal icons and a bank icon rendered.
+- [ ] Verify direct landmark and unnamed amenity pin selection, and compare a rendered reverse one-way arrow with its OSM way direction.
 
 - [x] Record the map review decisions and collect project guides in `docs/`, with a root README and documentation index.
 - [x] Locate the existing Para Stitch project, verify the cached map-source SHA-256 against its notice, and record the unchanged pack/search baseline in the [pilot map design review](<Para Pilot Map Design Review.md>). ADB detects the Infinix; no new app/device acceptance check is implied.

@@ -9,7 +9,7 @@ https://download.geofabrik.de/asia/philippines.html
 Source PBF SHA-256:
 ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51
 
-Para selected road, railway, river and named commuter-landmark features,
+Para selected road, railway, river, commuter landmarks and traffic signals,
 rounded coordinates to seven decimals, and partitioned features by regional
 ownership. A way crossing a regional border remains whole in its owner pack.
 Rendering all 18 packs joins them on the same map without duplicate ways.
@@ -17,7 +17,7 @@ The archive stores zooms 8–14 with simplified tile geometry at lower zooms.
 Coverage and completeness depend on the source OSM data. These packs are
 not a routing engine, complete address database or authoritative boundary map.
 
-The OSM-derived landmark records in place-search.sqlite are also available
+The OSM-derived named landmark records in place-search.sqlite are also available
 under ODbL 1.0; GeoNames records retain their separate CC BY 4.0 attribution.
 Reproducible transformations and the tile schema are
 in tools/extract-philippine-streets.py and tools/build-regional-streets.mjs in

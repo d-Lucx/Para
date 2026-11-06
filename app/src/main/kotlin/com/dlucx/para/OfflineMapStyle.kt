@@ -17,32 +17,43 @@ internal fun styleJson(
     fun circle(kind: String, color: String, radius: Int) =
         """{"id":"$kind","type":"circle","source":"$Overlay","filter":["==","kind","$kind"],
             "paint":{"circle-color":"$color","circle-radius":$radius,"circle-stroke-color":"$background","circle-stroke-width":1}}"""
-    fun streetLayers(kinds: List<Pair<String, String>>) = streetPacks.flatMap { pack ->
+    fun streetLayers(kinds: List<Pair<String, String>>, casing: Boolean = false) = streetPacks.flatMap { pack ->
         kinds.map { (kind, color) ->
-            """{"id":"$kind-${pack.id}","type":"line","source":"streets-${pack.id}","source-layer":"roads",
+            val width = if (kind == "main") 2.5 else 1.3
+            val edge = if (casing) 1.1 else 0.0
+            """{"id":"$kind-${if (casing) "casing-" else ""}${pack.id}","type":"line","source":"streets-${pack.id}","source-layer":"roads",
                 "filter":["==","kind","$kind"],"paint":{"line-color":"$color",
-                "line-width":["interpolate",["linear"],["zoom"],8,0.6,14,${if (kind == "main") 2.5 else 1.3}]}}"""
+                "line-width":["interpolate",["linear"],["zoom"],8,${0.6 + edge / 2},14,${width + edge},17,${width * 2 + edge}]}}"""
         }
     }
     val landmarkKinds = "\"Bus station\",\"Ferry terminal\",\"Railway station\",\"Airport\",\"Hospital\",\"Transit stop\""
+    val icon = """["match",["get","kind"],
+        ["Restaurant","Cafe","Fast food"],"street-food",["Bank","ATM"],"street-bank",
+        ["Hospital","Clinic","Pharmacy"],"street-health","Fuel","street-fuel",
+        ["Bus station","Ferry terminal","Railway station","Airport","Transit stop"],"street-transit","street-place"]"""
     fun landmarkLayers(pack: StreetPack, detail: Boolean): List<String> {
         val id = (if (detail) "detail-" else "") + pack.id
-        val filter = """["${if (detail) "!in" else "in"}","kind",$landmarkKinds]"""
+        val filter = """["all",["!=","kind","Traffic signal"],["${if (detail) "!in" else "in"}","kind",$landmarkKinds]]"""
         val zoom = if (detail) 15 else 13
         return listOf(
-            """{"id":"landmark-points-$id","type":"circle","source":"streets-${pack.id}","source-layer":"landmarks","minzoom":$zoom,
-                "filter":$filter,"paint":{"circle-color":"$primary","circle-radius":2.5}}""",
             """{"id":"landmarks-$id","type":"symbol","source":"streets-${pack.id}","source-layer":"landmarks","minzoom":$zoom,
-                "filter":$filter,"layout":{"text-field":["get","name"],"text-font":["Inter-Regular"],"text-size":12,
-                "text-anchor":"top","text-offset":[0,0.5],"text-max-width":12},
+                "filter":$filter,"layout":{"icon-image":$icon,"icon-size":0.8,"text-optional":true,
+                "text-field":["get","name"],"text-font":["Inter-Regular"],"text-size":12,
+                "text-anchor":"top","text-offset":[0,0.95],"text-max-width":12},
                 "paint":{"text-color":"$primary","text-halo-color":"$land","text-halo-width":1.5}}""",
         )
     }
     val streetLabels = streetPacks.flatMap { pack -> listOf(
-        """{"id":"road-names-${pack.id}","type":"symbol","source":"streets-${pack.id}","source-layer":"roads","minzoom":13,
-            "filter":["!",["within",$PilotBoundsJson]],
+        """{"id":"road-names-${pack.id}","type":"symbol","source":"streets-${pack.id}","source-layer":"roads","minzoom":12,
+            "filter":["all",["!",["within",$PilotBoundsJson]],["in",["get","kind"],["literal",["main","local"]]]],
             "layout":{"symbol-placement":"line","text-field":["get","name"],"text-font":["Inter-Regular"],"text-size":11},
             "paint":{"text-color":"$outline","text-halo-color":"$land","text-halo-width":1.5}}""",
+        """{"id":"road-oneway-${pack.id}","type":"symbol","source":"streets-${pack.id}","source-layer":"roads","minzoom":16,
+            "filter":["in","oneway",1,-1],"layout":{"symbol-placement":"line","symbol-spacing":85,
+                "icon-image":"street-oneway","icon-rotation-alignment":"map","icon-keep-upright":false,
+                "icon-rotate":["case",["==",["get","oneway"],-1],180,0]}}""",
+        """{"id":"traffic-signals-${pack.id}","type":"symbol","source":"streets-${pack.id}","source-layer":"landmarks","minzoom":16,
+            "filter":["==","kind","Traffic signal"],"layout":{"icon-image":"street-signal","icon-size":0.8}}""",
     ) + landmarkLayers(pack, false) + landmarkLayers(pack, true) }
     val layers = listOf(
         """{"id":"background","type":"background","paint":{"background-color":"$background"}}""",
@@ -54,7 +65,13 @@ internal fun styleJson(
         """{"id":"regional-name-labels","type":"symbol","source":"region-names","maxzoom":7.5,
             "layout":{"icon-image":["concat","region:",["get","name"]],"icon-size":0.7}}""",
         line("coast", "corridor", "coast", water, 2.0),
-    ) + streetLayers(listOf("local" to minor, "main" to outline)) + listOf(
+    ) + streetLayers(listOf(
+        "local" to if (dark) "#3D4342" else "#D8D2C7",
+        "main" to if (dark) "#807356" else "#D4C8B2",
+    ), casing = true) + streetLayers(listOf(
+        "local" to if (dark) "#656A6C" else "#FFFFFF",
+        "main" to if (dark) "#B39458" else "#FFE3A0",
+    )) + listOf(
         """{"id":"pilot-base","type":"fill","source":"pilot-bounds","minzoom":11,
             "paint":{"fill-color":"${if (dark) "#2B302D" else "#F7F5ED"}"}}""",
     ) + pilotAreaLayers(dark) + streetLayers(listOf("water" to water, "rail" to outline)) + pilotRoadLayers(dark) + streetLabels + listOf(

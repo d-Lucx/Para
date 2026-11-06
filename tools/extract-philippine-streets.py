@@ -10,26 +10,31 @@ import sys
 from pathlib import Path
 
 import osmium
+from shapely import prepare
 from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
+from map_osm_tags import road_properties, street_amenity
 
 source, assets, output = map(Path, sys.argv[1:])
 output.mkdir(parents=True, exist_ok=True)
 regions = json.loads((assets / 'regions/index.json').read_text())
 polygons = [shape(json.loads((assets / 'regions' / r['file']).read_text())['geometry']) for r in regions]
+prepare(polygons)
 tree = STRtree(polygons)
 streams = [(output / f"{r['id']}.jsonl").open('w', encoding='utf8') for r in regions]
 counts = [dict(roads=0, landmarks=0) for _ in regions]
 pois = []
 major = {'motorway', 'motorway_link', 'trunk', 'trunk_link', 'primary', 'primary_link', 'secondary', 'secondary_link'}
 minor = {'tertiary', 'tertiary_link', 'residential', 'unclassified', 'living_street', 'service', 'pedestrian'}
-amenities = {'bus_station', 'ferry_terminal', 'hospital', 'clinic', 'school', 'university', 'college', 'marketplace', 'place_of_worship', 'townhall', 'police', 'fire_station'}
+amenities = {'bus_station', 'ferry_terminal', 'school', 'university', 'college', 'marketplace', 'place_of_worship', 'townhall', 'police', 'fire_station'}
 
 
 def owner(lon, lat):
     point = Point(lon, lat)
-    matches = tree.query(point, predicate='intersects')
-    return int(matches[0]) if len(matches) else int(tree.nearest(point))
+    for index in tree.query(point):
+        if polygons[index].covers(point):
+            return int(index)
+    return int(tree.nearest(point))
 
 
 def emit(region, layer, properties, geometry):
@@ -38,6 +43,9 @@ def emit(region, layer, properties, geometry):
 
 
 def landmark(tags):
+    category = street_amenity(tags)
+    if category:
+        return category
     if tags.get('amenity') in amenities:
         return tags.get('amenity').replace('_', ' ').capitalize()
     if tags.get('railway') in {'station', 'halt'}:
@@ -57,12 +65,13 @@ class Extract(osmium.SimpleHandler):
     def poi(self, entity, lon, lat):
         category = landmark(entity.tags)
         name = entity.tags.get('name') or entity.tags.get('name:en')
-        if not category or not name:
+        if not category or (not name and not street_amenity(entity.tags)):
             return
         region = owner(lon, lat)
-        name = ' '.join(name.split())[:140]
+        name = ' '.join((name or '').split())[:140]
         emit(region, 'landmarks', dict(name=name, kind=category), dict(type='Point', coordinates=[lon, lat]))
-        pois.append([f'osm:{entity.type_str()}/{entity.id}', name, f"{category} · {regions[region]['name']}", lat, lon, entity.tags.get('alt_name', '')])
+        if name and category != 'Traffic signal':
+            pois.append([f'osm:{entity.type_str()}/{entity.id}', name, f"{category} · {regions[region]['name']}", lat, lon, entity.tags.get('alt_name', '')])
         counts[region]['landmarks'] += 1
 
     def node(self, node):
@@ -76,7 +85,7 @@ class Extract(osmium.SimpleHandler):
         kind = ('main' if highway in major else 'local' if highway in minor else
                 'rail' if railway in {'rail', 'light_rail', 'subway', 'tram'} else
                 'water' if waterway in {'river', 'canal'} else None)
-        has_poi = landmark(way.tags) and (way.tags.get('name') or way.tags.get('name:en'))
+        has_poi = landmark(way.tags) and (street_amenity(way.tags) or way.tags.get('name') or way.tags.get('name:en'))
         if not kind and not has_poi:
             return
         if any(not n.location.valid() for n in way.nodes):
@@ -87,7 +96,8 @@ class Extract(osmium.SimpleHandler):
         lon, lat = coords[len(coords) // 2]
         if kind:
             region = owner(lon, lat)
-            emit(region, 'roads', dict(kind=kind, name=way.tags.get('name', '')[:140]), dict(type='LineString', coordinates=coords))
+            properties = road_properties(way.tags) if kind in ('main', 'local') else dict(name=way.tags.get('name', '')[:140])
+            emit(region, 'roads', dict(kind=kind, **properties), dict(type='LineString', coordinates=coords))
             counts[region]['roads'] += 1
         if has_poi:
             # A representative point is inside a closed landmark footprint.

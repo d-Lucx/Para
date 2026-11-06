@@ -24,11 +24,13 @@ The additional archive contains 217,878 building areas and occupies 19.4 MiB. Al
 
 The catalog label optimization uses bundled glyphs for nationwide and pilot-stop names. In a focused Infinix comparison, median app PSS was 8.5 MiB lower across three map openings per build. The samples varied between openings. See the [measurement record](<docs/Para Map Improvement Plan.md#catalog-label-rendering>).
 
-First use prepares 183.5 MiB of local map and search files. If preparation fails, use **Retry offline maps** after resolving the storage problem. The isolated Infinix test recovered both a pilot archive and a regional archive in place. See the [copy and recovery results](<docs/Para Map Improvement Plan.md#first-use-preparation-and-copy-recovery>).
+First use prepares local map and search files. If preparation fails, use **Retry offline maps** after resolving the storage problem. An isolated Infinix test recovered both a pilot archive and a regional archive in place. See the [copy and recovery results](<docs/Para Map Improvement Plan.md#first-use-preparation-and-copy-recovery>).
 
 Home opens to the bundled map. Tap a landmark or drop a pin, then choose **Set arrival alarm** to confirm the stop and configure alert zones. Shared nationwide styling, area downloads and offline driving routes are tracked in the [expansion plan](<docs/Para Map-first Expansion Plan.md>).
 
 Tap **Locate** to show your GPS position and center the map. Para requests precise location if needed and shows a heading arrow when the compass or GPS travel direction is reliable.
+
+The 18 regional packs share the pilot's road palette and show category icons, more road labels, and mapped one-way arrows and traffic signals at street zoom. The regional archives and search index together are 26.2 MiB larger than before. See the [regional build guide](<docs/Regional map build.md>).
 
 ## Build and verify
 

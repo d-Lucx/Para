@@ -12,6 +12,11 @@ const { VectorTile } = await import(pathToFileURL(require.resolve('@mapbox/vecto
 const { default: Pbf } = await import(pathToFileURL(require.resolve('pbf')).href);
 const packs = JSON.parse(readFileSync(join(assets, 'streets/index.json')));
 let checked = 0;
+const verifiedTags = new Set();
+const tagSamples = [
+  ['roads', 'oneway', 1], ['roads', 'oneway', -1],
+  ...['Restaurant', 'Bank', 'Clinic', 'Fuel', 'Traffic signal'].map(kind => ['landmarks', 'kind', kind]),
+];
 for (const pack of packs) {
   const path = join(assets, 'streets', pack.file);
   const bytes = readFileSync(path);
@@ -30,15 +35,30 @@ for (const pack of packs) {
     const metadata = await archive.getMetadata();
     if (header.specVersion !== 3 || header.maxZoom !== 14 || metadata.name !== pack.name) throw Error(`Bad header: ${pack.name}`);
     const features = readFileSync(join(input, `${pack.id}.jsonl`), 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse);
-    for (const layer of ['roads', 'landmarks']) {
-      const feature = features.find(f => f.properties.layer === layer);
-      if (!feature) throw Error(`Missing ${layer}: ${pack.name}`);
+    async function sampleLayer(feature, layer) {
       const [lon, lat] = feature.geometry.type === 'Point' ? feature.geometry.coordinates : feature.geometry.coordinates[Math.floor(feature.geometry.coordinates.length / 2)];
       const x = Math.floor((lon + 180) / 360 * 16384);
       const y = Math.floor((1 - Math.asinh(Math.tan(lat * Math.PI / 180)) / Math.PI) / 2 * 16384);
       const result = await archive.getZxy(14, x, y);
-      if (!result || !new VectorTile(new Pbf(new Uint8Array(result.data))).layers[layer]?.length) throw Error(`Unreadable ${layer} tile: ${pack.name}`);
+      return result && new VectorTile(new Pbf(new Uint8Array(result.data))).layers[layer];
+    }
+    for (const layer of ['roads', 'landmarks']) {
+      const feature = features.find(f => f.properties.layer === layer);
+      if (!feature) throw Error(`Missing ${layer}: ${pack.name}`);
+      if (!(await sampleLayer(feature, layer))?.length) throw Error(`Unreadable ${layer} tile: ${pack.name}`);
       checked++;
+    }
+    for (const [layer, field, expected] of tagSamples) {
+      const key = `${field}=${expected}`;
+      if (verifiedTags.has(key)) continue;
+      const candidates = features.filter(f => f.properties.layer === layer && f.properties[field] === expected).slice(0, 12);
+      for (const feature of candidates) {
+        const decoded = await sampleLayer(feature, layer);
+        if (!decoded || !Array.from({ length: decoded.length }, (_, i) => decoded.feature(i).properties[field]).includes(expected)) continue;
+        verifiedTags.add(key);
+        console.log(`PASS encoded ${key}: ${pack.name}`);
+        break;
+      }
     }
     if (border?.pack === pack.id) {
       for (const point of border.points) {
@@ -57,3 +77,6 @@ for (const pack of packs) {
   } finally { closeSync(fd); }
 }
 console.log(`Verified ${packs.length} packs and ${checked} sample layers; ${(packs.reduce((n, p) => n + p.bytes, 0) / 1048576).toFixed(1)} MiB total.`);
+if (process.env.PARA_VERIFY_STREET_TAGS === '1' && verifiedTags.size !== tagSamples.length) {
+  throw Error(`Missing encoded street tag samples: ${tagSamples.map(([, field, value]) => `${field}=${value}`).filter(key => !verifiedTags.has(key)).join(', ')}`);
+}

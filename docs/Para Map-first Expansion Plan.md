@@ -54,7 +54,9 @@ Acceptance fixtures should cover a reversed one-way, a forbidden turn, a grade-s
 - [ ] Finish the [device verification checklist](<Para v1 Acceptance Checklist.md>), including large text and TalkBack.
 - [x] Add the foreground position marker and recenter control.
 - [ ] Verify a live fix, one-shot recenter, heading and permission fallback on a phone.
-- [ ] Extend the source schema and deliver the shared style with category icons, one-way arrows, traffic signals and richer road names. Validate one pilot pack and an adjacent pack before the national rebuild.
+- [x] Refresh the 18 bundled street packs with shared road styling, category icons, one-way arrows, traffic signals and more street labels.
+- [x] Smoke-test the new street symbols on Android in Davao and Manila. Track remaining pin and direction checks in the acceptance checklist.
+- [ ] Extend pilot-style buildings, parks, water polygons and walking paths to a detailed pack outside the pilot.
 - [ ] Implement the area catalog and downloader, then verify cancellation, disk errors, integrity, version changes, boundary coverage and offline reopen.
 - [ ] Verify an offline driving graph and route preview on the pilot and a cross-pack fixture. Record measured startup, frame cadence, search, disk and package-size changes before enabling broad rollout.
 

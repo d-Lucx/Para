@@ -71,7 +71,9 @@ for (const [position, region] of regions.entries()) {
   const root = directory(leafEntries);
   if (root.length + 127 > 16384) throw Error('Root directory too large');
   const metadata = gzipSync(JSON.stringify({ name: region.name, attribution: '© OpenStreetMap contributors',
-    vector_layers: ['roads', 'landmarks'].map(id => ({ id, fields: { name: 'String', kind: 'String' }, minzoom: 8, maxzoom: 14 })) }));
+    vector_layers: ['roads', 'landmarks'].map(id => ({ id, fields: {
+      name: 'String', kind: 'String', ...(id === 'roads' ? { oneway: 'Number' } : {}),
+    }, minzoom: 8, maxzoom: 14 })) }));
   const header = Buffer.alloc(127);
   header.write('PMTiles'); header[7] = 3;
   const leafStart = 127 + root.length + metadata.length;

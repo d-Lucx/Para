@@ -78,3 +78,9 @@ Use these results to update the open device verification entries in the acceptan
 2. Confirm that Para centers once on the location dot. Zoom in to see the accuracy area. Pan away, confirm the map stays where you moved it, then tap **Locate** again.
 3. With the phone roughly flat, turn it and check that the arrow tracks the top of the screen when the compass reports good accuracy. With unavailable heading and no reliable GPS travel direction, expect a dot.
 4. Leave Home and check that Para's foreground location access ends. Repeat with location permission denied and verify that map browsing and pin selection are still available.
+
+## 8. Street detail and symbols
+
+1. Open Para in airplane mode. Search for **Polyclinic Davao**, zoom into downtown Davao, and look for labeled streets and category icons for clinics, banks, fuel, food and transit.
+2. Zoom in to street level and check a mapped signal and a known one-way road. Compare the arrow with the OSM way direction. Verify that a traffic-signal icon does not snap the destination to the signal.
+3. Repeat in a different region. Tap a named landmark and then an unnamed amenity icon. The first should show its name and the second should use its category.
