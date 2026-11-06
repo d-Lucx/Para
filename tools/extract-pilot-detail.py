@@ -47,6 +47,20 @@ def area_kind(tags):
     return None
 
 
+def overlaps_bounds(nodes):
+    """Reject distant geometry before converting it to Shapely."""
+    min_lon, min_lat, max_lon, max_lat = 180, 90, -180, -90
+    for node in nodes:
+        if not node.location.valid():
+            continue
+        lon, lat = node.lon, node.lat
+        if west <= lon <= east and south <= lat <= north:
+            return True
+        min_lon, min_lat = min(min_lon, lon), min(min_lat, lat)
+        max_lon, max_lat = max(max_lon, lon), max(max_lat, lat)
+    return min_lon <= east and max_lon >= west and min_lat <= north and max_lat >= south
+
+
 class Extract(osmium.SimpleHandler):
     def node(self, node):
         if node.tags.get('entrance') in (None, 'no') or not node.location.valid():
@@ -60,9 +74,7 @@ class Extract(osmium.SimpleHandler):
         highway = way.tags.get('highway')
         if not highway or len(way.nodes) < 2:
             return
-        # Location cache is populated before source-tag filters.
-        first = way.nodes[0]
-        if not first.location.valid():
+        if not overlaps_bounds(way.nodes):
             return
         try:
             geometry = shape(json.loads(factory.create_linestring(way)))
@@ -80,6 +92,8 @@ class Extract(osmium.SimpleHandler):
         category = area_kind(area.tags)
         is_landmark = area.tags.get('name') and (area.tags.get('amenity') or area.tags.get('shop') or area.tags.get('aeroway'))
         if not category and not is_landmark:
+            return
+        if not any(overlaps_bounds(ring) for ring in area.outer_rings()):
             return
         try:
             geometry = shape(json.loads(factory.create_multipolygon(area)))
