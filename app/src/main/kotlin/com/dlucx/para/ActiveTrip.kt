@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,6 +29,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,6 +58,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import java.util.Locale
 import kotlin.math.roundToLong
+import kotlin.math.ceil
 
 @Composable
 internal fun ActiveTrip(
@@ -64,6 +68,7 @@ internal fun ActiveTrip(
     showDestinationDetails: Boolean = true,
     notificationEndRequested: Boolean = false,
     onNotificationEndHandled: () -> Unit = {},
+    showLiveMap: Boolean = false,
 ) {
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
     val scroll = rememberScrollState()
@@ -84,11 +89,37 @@ internal fun ActiveTrip(
         TripStatus.WaitingForGps, TripStatus.GpsSignalLost, TripStatus.Approaching -> warningColor
     }
     val arrival = snapshot.alert == TripAlert.Arrival
+    val liveMap = showLiveMap && showDestinationDetails && snapshot.alert == null
 
     Scaffold(
         containerColor = colors.background,
         topBar = { ParaHeader(if (arrival) "Arrival alarm" else "Active trip") },
+        bottomBar = {
+            if (liveMap) {
+                Surface {
+                    Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ParaMetric("Straight-line remaining", snapshot.remainingMeters?.let(::formatDistance)
+                                ?: "GPS fix needed", Modifier.weight(1f))
+                            ParaMetric("Elapsed time", formatElapsed(snapshot.elapsedMillis), Modifier.weight(1f))
+                        }
+                        Text("Arrival alarm · ${snapshot.destination.arrivalMeters} m",
+                            style = MaterialTheme.typography.labelMedium)
+                        Button(
+                            onClick = { confirmEnd = true },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = colors.error, contentColor = colors.onError),
+                        ) { Text("End trip") }
+                    }
+                }
+            }
+        },
     ) { insets ->
+        if (liveMap) {
+            LiveTripMap(snapshot, statusColor, Modifier.fillMaxSize().padding(insets))
+            return@Scaffold
+        }
         Column(
             modifier = Modifier.fillMaxSize().padding(insets)
                 .verticalScroll(scroll).padding(16.dp),
@@ -136,6 +167,49 @@ internal fun ActiveTrip(
                 TextButton(onClick = { confirmEnd = false }) { Text("Cancel") }
             },
         )
+    }
+}
+
+@Composable
+private fun LiveTripMap(snapshot: TripSnapshot, statusColor: Color, modifier: Modifier) {
+    val destination = snapshot.destination
+    val point = snapshot.liveTrail.lastOrNull()?.lastOrNull()?.takeIf { snapshot.latestAccuracyMeters != null }
+        ?.let { CorridorPoint(it.latitude, it.longitude) }
+    val heading = rememberPhoneHeading(point)
+    val position = point?.let { HomePosition(it, ceil(checkNotNull(snapshot.latestAccuracyMeters)).toInt(), heading) }
+    var recenter by remember { mutableStateOf(false) }
+    BoxWithConstraints(modifier) {
+        val compact = maxHeight < 360.dp || LocalDensity.current.fontScale > 1.3f
+        Column(
+            Modifier.fillMaxSize().then(if (compact) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(destination.name, style = MaterialTheme.typography.titleLarge)
+            if (snapshot.status == TripStatus.Tracking) {
+                ParaBadge("Tracking", highlighted = true)
+            } else if (snapshot.status == TripStatus.Approaching) {
+                ParaBadge("Approaching destination", highlighted = true)
+            } else {
+                GpsStatus(snapshot, statusColor)
+            }
+            CorridorMap(
+                selectedPoint = CorridorPoint(destination.latitude, destination.longitude),
+                approachRadiusMeters = 0,
+                arrivalRadiusMeters = destination.arrivalMeters,
+                onPointSelected = { _, _ -> },
+                onOutsideCoverage = {},
+                modifier = Modifier.fillMaxWidth().then(if (compact) Modifier.height(260.dp) else Modifier.weight(1f)),
+                recordedSegments = snapshot.liveTrail,
+                readOnly = true,
+                focusSelection = true,
+                homePosition = position,
+                onRecenter = { recenter = true },
+                recenterRequested = recenter,
+                onRecenterComplete = { recenter = false },
+                liveTrack = true,
+            )
+        }
     }
 }
 

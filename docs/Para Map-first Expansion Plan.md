@@ -14,7 +14,7 @@ The rider approved a map-first Home, a driving route preview with estimated trav
 
 The position marker uses a dot and an accuracy circle for usable fixes. Show a heading arrow when device orientation is available. Use the direction of the phone's top edge when flat and the direction through the back of the phone when nearly upright. Update the arrow independently of the GPS geometry. Subscribe to map location and orientation while the screen is visible. See the [Android position sensors reference](https://developer.android.com/develop/sensors-and-location/sensors/sensors_position).
 
-The current active-trip screen shows the stop, GPS status, elapsed time and straight-line distance. The recorded GPS path appears in the trip overview after tracking ends. The [live trip Stitch draft](designs/live-trip-map-light.png) shows the rider, confirmed destination and recorded trail with fixed trip metrics and **End trip**. Before implementation, confirm the layout with the rider. The native map must pad its viewport so the rider marker stays visible and draw the recorded trail only through the latest recorded point. A planned driving route and ETA depend on the routing stage below.
+The rider approved the [live trip Stitch layout](designs/live-trip-map-light.png). The foreground trip map uses accepted GPS samples, shows the confirmed destination and recent recorded trail with gaps, and keeps trip metrics and **End trip** below the map. The trip overview retains the full recording. Planned driving routes and ETA depend on the routing stage below.
 
 ## Nationwide presentation and data
 
@@ -60,7 +60,8 @@ Acceptance fixtures should cover a reversed one-way, a forbidden turn, a grade-s
 - [ ] Verify a live fix, one-shot recenter, heading and permission fallback on a phone.
 - [x] Refresh the 18 bundled street packs with shared road styling, category icons, one-way arrows, traffic signals and more street labels.
 - [x] Smoke-test the new street symbols on Android in Davao and Manila. Track remaining pin and direction checks in the acceptance checklist.
-- [ ] Extend pilot-style buildings, parks, water polygons and walking paths to a detailed pack outside the pilot.
+- [x] Generate and validate the adjacent Tagum North detail candidate with 3,928 tiles and a 459-place search index.
+- [ ] Verify Tagum North rendering and the shared boundary on device when downloaded pack loading is available.
 - [ ] Implement the area catalog and downloader, then verify cancellation, disk errors, integrity, version changes, boundary coverage and offline reopen.
 - [ ] Verify an offline driving graph and route preview on the pilot and a cross-pack fixture. Record measured startup, frame cadence, search, disk and package-size changes before enabling broad rollout.
 

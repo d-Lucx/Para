@@ -63,7 +63,13 @@ class TripSessionTest {
         trip.onTime(20_000)
         assertEquals(TripStatus.GpsSignalLost, trip.snapshot().status)
         assertNull(trip.snapshot().remainingMeters)
+        val lost = trip.snapshot()
+        assertNull(lost.latestAccuracyMeters)
         trip.onFix(7.47, 125.80, 10f, 20_001, 20_001)
+        val resumed = trip.snapshot()
+        assertEquals(listOf(2, 1), resumed.liveTrail.map { it.size })
+        assertEquals(20_001L, resumed.liveTrail.last().last().fixMillis)
+        assertEquals(listOf(2), lost.liveTrail.map { it.size })
         assertEquals(2, trip.finish(20_001).segments.size)
         assertEquals(0.0, trip.finish(20_001).recordedDistanceMeters, 0.0)
     }

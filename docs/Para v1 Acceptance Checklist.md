@@ -97,6 +97,9 @@ The [map-first expansion plan](<Para Map-first Expansion Plan.md>) tracks the ap
 - [x] Move map attribution off the image into a compact line below it. Verified on the Infinix that the line sits outside the map and the full ODbL attribution opens in Settings.
 - [x] Infinix destination setup. A vertical drag moved the map while the search and zoom controls stayed in place. A swipe starting outside the map scrolled the page.
 - [ ] Verify horizontal and diagonal drags and repeat the gesture check on a saved trip overview.
+- [x] Implement the approved live trip map with a destination ring, recorded trail, current fix, and fixed metrics and End trip action.
+- [x] Infinix smoke test. Started a test trip, saw the active map with both trip metrics and End trip, then confirmed ending the trip and discarded the test overview.
+- [ ] Verify rider heading, recenter, trail updates while moving, GPS gap behavior, and the lock-screen privacy path on a phone.
 
 - [x] Record the map review decisions and collect project guides in `docs/`, with a root README and documentation index.
 - [x] Locate the existing Para Stitch project, verify the cached map-source SHA-256 against its notice, and record the unchanged pack/search baseline in the [pilot map design review](<Para Pilot Map Design Review.md>). ADB detects the Infinix; no new app/device acceptance check is implied.

@@ -21,6 +21,8 @@ internal data class TripSnapshot(
     val backupTimerActive: Boolean = false,
     val gpsProviderEnabled: Boolean = true,
     val backupTimerExact: Boolean = true,
+    val liveTrail: List<List<TripPoint>> = emptyList(),
+    val latestAccuracyMeters: Float? = null,
 )
 
 internal data class TripPoint(val latitude: Double, val longitude: Double, val fixMillis: Long)
@@ -42,6 +44,8 @@ internal class TripSession(val destination: DestinationDraft, private val starte
     private var backupFired = false
     private val segments = mutableListOf<MutableList<TripPoint>>()
     private var recordedDistanceMeters = 0.0
+    private var liveTrail: List<List<TripPoint>> = emptyList()
+    private var latestAccuracyMeters: Float? = null
     private val backupDelayMillis = destination.backupMinutes?.times(60_000L)
 
     private val lastPoint: TripPoint?
@@ -87,6 +91,17 @@ internal class TripSession(val destination: DestinationDraft, private val starte
             segments.last().add(point)
             recordedDistanceMeters += distanceMeters(previous.latitude, previous.longitude, latitude, longitude)
         }
+        latestAccuracyMeters = accuracyMeters
+        // Bound foreground map work. The saved trip retains the full recording.
+        var pointsLeft = 2048
+        val recent = ArrayDeque<List<TripPoint>>()
+        for (segment in segments.asReversed()) {
+            if (pointsLeft == 0) break
+            val points = segment.takeLast(pointsLeft)
+            recent.addFirst(points)
+            pointsLeft -= points.size
+        }
+        liveTrail = recent.toList()
 
         val distance = distanceMeters(latitude, longitude, destination.latitude, destination.longitude)
         remainingMeters = distance
@@ -124,6 +139,8 @@ internal class TripSession(val destination: DestinationDraft, private val starte
             alert = alert,
             recordedDistanceMeters = recordedDistanceMeters,
             backupTimerActive = backupDelayMillis != null && !backupFired && alert != TripAlert.Arrival,
+            liveTrail = liveTrail,
+            latestAccuracyMeters = latestAccuracyMeters.takeIf { distance != null },
         )
     }
 

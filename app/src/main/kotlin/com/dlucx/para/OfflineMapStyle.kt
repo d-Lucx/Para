@@ -88,6 +88,7 @@ internal fun styleJson(
                 "text-font":["Inter-Regular"],"text-size":11,"text-offset":[0,1.3],"text-anchor":"top"},
             "paint":{"text-color":"$primary","text-halo-color":"$background","text-halo-width":1.5}}""",
         circle("pin", primary, 6),
+        circle("live-pin", arrival, 7),
         circle("approach-handle", approach, 4),
         circle("arrival-handle", arrival, 4),
         """{"id":"places","type":"symbol","source":"corridor","source-layer":"places",

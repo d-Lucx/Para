@@ -30,6 +30,8 @@ Home opens to the bundled map. Tap a landmark or drop a pin, then choose **Set a
 
 Tap **Locate** to show your position and center the map. Home can show a recent approximate location with an accuracy label while the trip alarm waits for a fresh, precise GPS fix. The arrow follows the phone's compass heading. When the heading is unavailable, the marker is a dot.
 
+During an active trip, the map shows the confirmed destination, arrival ring, current usable fix and recent recorded GPS trail. Straight-line distance, elapsed time and **End trip** stay below the map. The trip overview retains the full recording.
+
 The 18 regional packs share the pilot's road palette and show category icons, more road labels, and mapped one-way arrows and traffic signals at street zoom. The offline search index is stored as a 23.8 MiB gzip asset and expands to 61.8 MiB on first use. See the [regional build guide](<docs/Regional map build.md>).
 
 ## Build and verify

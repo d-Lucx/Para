@@ -248,6 +248,7 @@ internal fun ParaApp(
         if (trip != null) {
             ActiveTrip(
                 snapshot = trip,
+                showLiveMap = true,
                 onEnd = onEndTrip,
                 onKeepTracking = onKeepTracking,
                 notificationEndRequested = notificationEndRequested,

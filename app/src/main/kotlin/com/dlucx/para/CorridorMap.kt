@@ -100,6 +100,7 @@ internal fun CorridorMap(
     recenterRequested: Boolean = false,
     onRecenter: (() -> Unit)? = null,
     onRecenterComplete: () -> Unit = {},
+    liveTrack: Boolean = false,
 ) {
     val context = LocalContext.current
     var mapAttempt by remember { mutableIntStateOf(0) }
@@ -164,7 +165,8 @@ internal fun CorridorMap(
             .logoEnabled(false)
             .attributionEnabled(false))
             .apply {
-                contentDescription = if (readOnly) "Offline map of recorded trip"
+                contentDescription = if (liveTrack) "Offline map of active trip"
+                else if (readOnly) "Offline map of recorded trip"
                 else "Offline Philippine map. Tap a named place or place a custom pin."
                 onCreate(null)
             }
@@ -305,9 +307,9 @@ internal fun CorridorMap(
             view.removeOnDidFailLoadingMapListener(failure)
         }
     }
-    LaunchedEffect(style, selectedPoint, approachRadiusMeters, arrivalRadiusMeters, recordedSegments) {
+    LaunchedEffect(style, selectedPoint, approachRadiusMeters, arrivalRadiusMeters, recordedSegments, liveTrack) {
         style?.getSourceAs<GeoJsonSource>(Overlay)
-            ?.setGeoJson(overlay(selectedPoint, approachRadiusMeters, arrivalRadiusMeters, recordedSegments))
+            ?.setGeoJson(overlay(selectedPoint, approachRadiusMeters, arrivalRadiusMeters, recordedSegments, liveTrack))
     }
     LaunchedEffect(style, homePosition?.point, homePosition?.accuracyMeters) {
         val features = homePosition?.let { position ->
@@ -349,7 +351,8 @@ internal fun CorridorMap(
         }
     }
     LaunchedEffect(map, selectedPoint, focusSelection) {
-        if (readOnly && recordedSegments.any { it.isNotEmpty() }) return@LaunchedEffect
+        if (liveTrack && homePosition != null) return@LaunchedEffect
+        if (readOnly && !liveTrack && recordedSegments.any { it.isNotEmpty() }) return@LaunchedEffect
         val point = selectedPoint ?: return@LaunchedEffect
         val nativeMap = map ?: return@LaunchedEffect
         val location = LatLng(point.latitude, point.longitude)
@@ -364,7 +367,7 @@ internal fun CorridorMap(
         }
     }
     LaunchedEffect(map, recordedSegments, readOnly) {
-        if (!readOnly) return@LaunchedEffect
+        if (!readOnly || liveTrack) return@LaunchedEffect
         val nativeMap = map ?: return@LaunchedEffect
         val points = recordedSegments.flatten()
         if (points.isEmpty()) return@LaunchedEffect
@@ -377,6 +380,26 @@ internal fun CorridorMap(
             if (south == north && west == east) nativeMap.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(south, west), 15.0))
             else nativeMap.moveCamera(CameraUpdateFactory.newLatLngBounds(
                 LatLngBounds.from(north, east, south, west), 40))
+        }
+    }
+    var liveViewportFitted by remember(map) { mutableStateOf(false) }
+    LaunchedEffect(map, liveTrack, homePosition != null, selectedPoint) {
+        val nativeMap = map ?: return@LaunchedEffect
+        val rider = homePosition?.point ?: return@LaunchedEffect
+        val destination = selectedPoint ?: return@LaunchedEffect
+        if (!liveTrack || liveViewportFitted) return@LaunchedEffect
+        view.post {
+            if (!view.isAttachedToWindow || view.width <= 112 || view.height <= 112) return@post
+            if (rider == destination) {
+                nativeMap.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(rider.latitude, rider.longitude), 15.0))
+            } else {
+                val bounds = LatLngBounds.Builder()
+                    .include(LatLng(rider.latitude, rider.longitude))
+                    .include(LatLng(destination.latitude, destination.longitude))
+                    .build()
+                nativeMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 56))
+            }
+            liveViewportFitted = true
         }
     }
     Column(modifier) {
@@ -437,6 +460,7 @@ private fun overlay(
     approach: Int,
     arrival: Int,
     segments: List<List<TripPoint>>,
+    liveTrack: Boolean,
 ): FeatureCollection {
     val features = mutableListOf<Feature>()
     fun line(kind: String, points: List<Point>) {
@@ -455,18 +479,20 @@ private fun overlay(
         if (points.size >= 2) line("track", points)
         else points.firstOrNull()?.let { marker("track-point", it) }
     }
-    segments.firstOrNull { it.isNotEmpty() }?.firstOrNull()?.let {
-        marker("track-start", Point.fromLngLat(it.longitude, it.latitude))
-    }
-    segments.lastOrNull { it.isNotEmpty() }?.lastOrNull()?.let {
-        marker("track-end", Point.fromLngLat(it.longitude, it.latitude))
+    if (!liveTrack) {
+        segments.firstOrNull { it.isNotEmpty() }?.firstOrNull()?.let {
+            marker("track-start", Point.fromLngLat(it.longitude, it.latitude))
+        }
+        segments.lastOrNull { it.isNotEmpty() }?.lastOrNull()?.let {
+            marker("track-end", Point.fromLngLat(it.longitude, it.latitude))
+        }
     }
     if (selected != null) {
-        marker("pin", selected.asPoint())
+        marker(if (liveTrack) "live-pin" else "pin", selected.asPoint())
         for ((kind, radius) in listOf("approach" to approach, "arrival" to arrival)) {
             if (radius > 0) {
                 line(kind, (0..64).map { ringPoint(selected, radius, it * PI / 32) })
-                marker(kind + "-handle", ringPoint(selected, radius, if (kind == "approach") 0.0 else PI))
+                if (!liveTrack) marker(kind + "-handle", ringPoint(selected, radius, if (kind == "approach") 0.0 else PI))
             }
         }
     }

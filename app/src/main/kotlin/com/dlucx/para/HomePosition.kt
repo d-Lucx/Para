@@ -45,12 +45,10 @@ private const val MapFixMaxAccuracyMeters = 1_000f
 @Composable
 internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
     val context = LocalContext.current
-    val view = LocalView.current
     val lifecycle = (LocalActivity.current as LifecycleOwner).lifecycle
     val locations = remember(context) { context.getSystemService(LocationManager::class.java) }
     var deviceLocationEnabled by remember(locations) { mutableStateOf(LocationManagerCompat.isLocationEnabled(locations)) }
     var fixes by remember { mutableStateOf<Map<String, Location>>(emptyMap()) }
-    var magneticHeading by remember { mutableStateOf<Int?>(null) }
     fun isFresh(location: Location): Boolean {
         val age = SystemClock.elapsedRealtime() - location.elapsedRealtimeNanos / 1_000_000
         return age in 0 until MapFixMaxAgeMillis
@@ -60,10 +58,7 @@ internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
         delay((oldest + MapFixMaxAgeMillis - SystemClock.elapsedRealtime()).coerceAtLeast(1))
         fixes = fixes.filterValues(::isFresh)
     }
-    DisposableEffect(enabled, lifecycle, view) {
-        val sensors = context.getSystemService(SensorManager::class.java)
-        val rotation = sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
-            ?: sensors.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR)
+    DisposableEffect(enabled, lifecycle, locations) {
         val listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
                 if (location.hasAccuracy() && location.accuracy > 0 &&
@@ -80,6 +75,59 @@ internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
                 deviceLocationEnabled = LocationManagerCompat.isLocationEnabled(locations)
             }
         }
+        fun stop() {
+            locations.removeUpdates(listener)
+            fixes = emptyMap()
+        }
+        val observer = object : DefaultLifecycleObserver {
+            override fun onResume(owner: LifecycleOwner) {
+                deviceLocationEnabled = LocationManagerCompat.isLocationEnabled(locations)
+                if (!enabled || ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) !=
+                    PackageManager.PERMISSION_GRANTED
+                ) return
+                try {
+                    for (provider in listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)) {
+                        if (provider !in locations.allProviders) continue
+                        locations.requestLocationUpdates(provider, 2_000L, 0f, listener, Looper.getMainLooper())
+                        if (locations.isProviderEnabled(provider)) {
+                            locations.getLastKnownLocation(provider)?.let(listener::onLocationChanged)
+                        }
+                    }
+                } catch (_: SecurityException) {
+                    stop()
+                } catch (_: IllegalArgumentException) {
+                    stop()
+                }
+            }
+            override fun onPause(owner: LifecycleOwner) = stop()
+        }
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+            stop()
+        }
+    }
+    val current = fixes.values.minByOrNull { it.accuracy }
+    val point = current?.let { CorridorPoint(it.latitude, it.longitude) }
+    val heading = rememberPhoneHeading(point, current?.altitude ?: 0.0)
+    if (current == null || point == null) return HomeLocation(null, deviceLocationEnabled)
+    return HomeLocation(
+        HomePosition(point, ceil(current.accuracy).toInt(), heading),
+        deviceLocationEnabled,
+    )
+}
+
+@Composable
+internal fun rememberPhoneHeading(point: CorridorPoint?, altitude: Double = 0.0): Int? {
+    val context = LocalContext.current
+    val view = LocalView.current
+    val lifecycle = (LocalActivity.current as LifecycleOwner).lifecycle
+    var magneticHeading by remember { mutableStateOf<Int?>(null) }
+    val enabled = point != null
+    DisposableEffect(enabled, lifecycle, view) {
+        val sensors = context.getSystemService(SensorManager::class.java)
+        val rotation = sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+            ?: sensors.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR)
         val compass = object : SensorEventListener {
             private val matrix = FloatArray(9)
             private val screenMatrix = FloatArray(9)
@@ -117,32 +165,14 @@ internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
             }
         }
         fun stop() {
-            locations.removeUpdates(listener)
             sensors.unregisterListener(compass)
-            fixes = emptyMap()
             magneticHeading = null
         }
         val observer = object : DefaultLifecycleObserver {
             override fun onResume(owner: LifecycleOwner) {
-                deviceLocationEnabled = LocationManagerCompat.isLocationEnabled(locations)
-                if (!enabled || ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) !=
-                    PackageManager.PERMISSION_GRANTED
-                ) return
-                try {
-                    for (provider in listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)) {
-                        if (provider !in locations.allProviders) continue
-                        locations.requestLocationUpdates(provider, 2_000L, 0f, listener, Looper.getMainLooper())
-                        if (locations.isProviderEnabled(provider)) {
-                            locations.getLastKnownLocation(provider)?.let(listener::onLocationChanged)
-                        }
-                    }
-                    rotation?.let { sensors.registerListener(compass, it, 50_000) }
-                } catch (_: SecurityException) {
-                    stop()
-                } catch (_: IllegalArgumentException) {
-                    stop()
-                }
+                if (enabled && rotation != null) sensors.registerListener(compass, rotation, 50_000)
             }
+
             override fun onPause(owner: LifecycleOwner) = stop()
         }
         lifecycle.addObserver(observer)
@@ -151,13 +181,10 @@ internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
             stop()
         }
     }
-    val current = fixes.values.minByOrNull { it.accuracy } ?: return HomeLocation(null, deviceLocationEnabled)
-    val declination = remember(current) {
-        GeomagneticField(current.latitude.toFloat(), current.longitude.toFloat(), current.altitude.toFloat(), current.time).declination
+    if (point == null) return null
+    val declination = remember(point, altitude) {
+        GeomagneticField(point.latitude.toFloat(), point.longitude.toFloat(), altitude.toFloat(),
+            System.currentTimeMillis()).declination
     }
-    val heading = magneticHeading?.let { Math.floorMod((it + declination).roundToInt(), 360) }
-    return HomeLocation(
-        HomePosition(CorridorPoint(current.latitude, current.longitude), ceil(current.accuracy).toInt(), heading),
-        deviceLocationEnabled,
-    )
+    return magneticHeading?.let { Math.floorMod((it + declination).roundToInt(), 360) }
 }
