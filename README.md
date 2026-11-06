@@ -36,6 +36,8 @@ The 18 regional packs share the pilot's road palette and show category icons, mo
 
 Zoom into Davao West or open **Settings → Detailed offline maps** to download its building, park, water and path detail. Tagum North detail is included in the APK. Both packs and their checksummed catalog are available from the [map-data release](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06).
 
+For Region XI detail, install **Region XI - Davao Region** and **Davao West** in Settings. The regional ZIP fills the part of Para's Region XI outline beyond the three existing detail packs. The [Region XI map-data release](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06-rxi) includes a catalog that retains the earlier packs.
+
 ## Build and verify
 
 Use JDK 17, Android SDK Platform 37, Android platform-tools, and the repository's Gradle wrapper (Gradle 9.6.0). Android Studio can install the SDK components. The app supports Android 8.0 / API 26 and newer.

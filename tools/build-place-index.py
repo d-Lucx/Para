@@ -13,8 +13,19 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('assets', type=Path)
 parser.add_argument('intermediates', type=Path)
 parser.add_argument('--bounds', type=float, nargs=4, metavar=('WEST', 'SOUTH', 'EAST', 'NORTH'))
+parser.add_argument('--coverage-manifest', type=Path, help='Use the exact coverage in a detail source manifest')
 args = parser.parse_args()
 assets, intermediates = args.assets, args.intermediates
+coverage = None
+if args.coverage_manifest:
+    if args.bounds:
+        parser.error('Choose --bounds or --coverage-manifest')
+    from shapely import prepare
+    from shapely.geometry import Point, shape
+    manifest = json.loads(args.coverage_manifest.read_text(encoding='utf8'))
+    coverage = shape(manifest['coverage'])
+    prepare(coverage)
+    args.bounds = manifest['bounds']
 if args.bounds:
     west, south, east, north = args.bounds
     if not (-180 <= west < east <= 180 and -85 <= south < north <= 85):
@@ -46,6 +57,8 @@ for file in [assets / 'corridor-stops.tsv', assets / 'region-places.tsv', interm
         ident, name, locality = fields[:3]
         lat, lon = map(float, fields[3:5])
         if args.bounds and not (west <= lon <= east and south <= lat <= north):
+            continue
+        if coverage is not None and not coverage.covers(Point(lon, lat)):
             continue
         aliases = fields[5] if len(fields) > 5 else ''
         region = next((r['name'] for r in regions if locality.endswith(r['name'])), '')

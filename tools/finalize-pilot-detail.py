@@ -29,8 +29,28 @@ data['features'] = [f for f in data['features'] if
     (f['properties']['source_id'], f['properties']['layer']) not in suppressed]
 removed_duplicates = original - len(data['features'])
 before_dimensions = len(data['features'])
-data['features'] = [f for f in data['features'] if f['geometry']['type'] in
-    (('LineString', 'MultiLineString') if f['properties']['layer'] in ('paths', 'road-detail') else ('Polygon', 'MultiPolygon'))]
+
+def renderable(feature):
+    geometry = feature['geometry']
+    linear = feature['properties']['layer'] in ('paths', 'road-detail')
+    single, multi = ('LineString', 'MultiLineString') if linear else ('Polygon', 'MultiPolygon')
+    if geometry['type'] == 'GeometryCollection':
+        def parts(item):
+            if item['type'] == single:
+                yield item['coordinates']
+            elif item['type'] == multi:
+                yield from item['coordinates']
+            elif item['type'] == 'GeometryCollection':
+                for child in item['geometries']:
+                    yield from parts(child)
+        coordinates = list(parts(geometry))
+        if not coordinates:
+            return False
+        feature['geometry'] = dict(type=multi, coordinates=coordinates)
+        return True
+    return geometry['type'] in (single, multi)
+
+data['features'] = [f for f in data['features'] if renderable(f)]
 before_unbuilt = len(data['features'])
 data['features'] = [f for f in data['features'] if not (f['properties']['layer'] == 'road-detail' and
     f['properties']['kind'] in ('construction', 'proposed', 'abandoned', 'razed', 'demolished'))]

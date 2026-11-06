@@ -15,7 +15,7 @@ internal fun pilotAreaLayers(dark: Boolean, id: String): List<String> {
     )
 }
 
-internal fun pilotRoadLayers(dark: Boolean, id: String): List<String> {
+internal fun pilotRoadLayers(dark: Boolean, id: String, showLabels: Boolean): List<String> {
     val major = """["in",["get","kind"],["literal",["motorway","motorway_link","trunk","trunk_link","primary","primary_link","secondary","secondary_link"]]]"""
     val width = """["interpolate",["linear"],["zoom"],11,["case",$major,1.5,0.6],14,["case",$major,4,2],17,["case",$major,12,6]]"""
     return listOf(
@@ -26,8 +26,9 @@ internal fun pilotRoadLayers(dark: Boolean, id: String): List<String> {
         """{"id":"$id-paths","type":"line","source":"$id","source-layer":"paths","minzoom":14,
             "paint":{"line-color":["case",["any",["in",["get","access"],["literal",["private","no"]]],["==",["get","foot"],"no"]],"#A36B6B","${if (dark) "#B5B7B0" else "#888D87"}"],
                 "line-dasharray":[2,2],"line-width":1.3}}""",
+    ) + if (showLabels) listOf(
         """{"id":"$id-road-labels","type":"symbol","source":"$id","source-layer":"road-detail","minzoom":13,
             "layout":{"symbol-placement":"line","text-field":["get","name"],"text-font":["Inter-Regular"],"text-size":11},
             "paint":{"text-color":"${if (dark) "#E4DFD4" else "#64553E"}","text-halo-color":"${if (dark) "#303334" else "#FAF7F1"}","text-halo-width":1.3}}""",
-    )
+    ) else emptyList()
 }

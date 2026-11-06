@@ -38,6 +38,25 @@
       "places": 459,
       "tiles": 3928,
       "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
+    },
+    {
+      "id": "region-xi",
+      "name": "Region XI - Davao Region",
+      "version": "2026-11-06-rxi",
+      "bounds": [
+        125.04679,
+        5.36551,
+        126.60496,
+        8.00325
+      ],
+      "url": "https://github.com/d-Lucx/Para/releases/download/map-data-2026-11-06-rxi/region-xi-2026-11-06-rxi.zip",
+      "bytes": 31562839,
+      "sha256": "6e1e440566e91da8cf81ed37aec77b27a7e44f1172d977e83931cee3cd1d73e5",
+      "mapSchema": 1,
+      "searchSchema": 1,
+      "places": 3508,
+      "tiles": 37018,
+      "sourceSha256": "ba1749901aa7559084dda822f1e2716324208fab8646b8de5309cef6206a5c51"
     }
   ]
 }

@@ -12,7 +12,9 @@ internal data class MappedEntrance(
     val selectable: Boolean get() = access !in listOf("no", "private") && kind != "exit"
 }
 
-internal data class DetailMapPack(val id: String, val url: String, val boundsJson: String)
+internal data class DetailMapPack(
+    val id: String, val url: String, val boundsJson: String, val rectangular: Boolean = true,
+)
 
 internal class PilotMaps private constructor(val packs: List<DetailMapPack>, private val entrances: List<MappedEntrance>) {
     fun entrancesFor(id: String?): List<MappedEntrance> = entrances.filter { it.landmarkId == id }.distinctBy { it.id }
@@ -22,6 +24,10 @@ internal class PilotMaps private constructor(val packs: List<DetailMapPack>, pri
         fun refreshDownloads() = synchronized(this) { cached = null }
 
         private fun pack(id: String, file: java.io.File, index: JSONObject): DetailMapPack {
+            index.optJSONObject("coverage")?.let { coverage ->
+                check(coverage.getString("type") in setOf("Polygon", "MultiPolygon"))
+                return DetailMapPack(id, "pmtiles://" + Uri.fromFile(file), coverage.toString(), rectangular = false)
+            }
             val bounds = index.getJSONArray("bounds")
             val west = bounds.getDouble(0)
             val south = bounds.getDouble(1)

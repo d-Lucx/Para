@@ -14,26 +14,43 @@ const source = JSON.parse(readFileSync(join(input, 'source.json')));
 if (!Object.hasOwn(source.counts, 'duplicate_member_areas_removed')) throw Error('Run finalize-pilot-detail.py before tiling');
 const data = JSON.parse(readFileSync(join(input, 'pilot.geojson')));
 const minZoom = { landuse: 11, water: 11, buildings: 15, paths: 14, 'road-detail': 11 };
+const regional = Boolean(source.coverage);
+const firstZoom = 11;
 const indexes = Object.fromEntries(Object.keys(minZoom).map(layer => [layer, geojsonvt({type:'FeatureCollection',
   features:data.features.filter(f => f.properties.layer === layer)},
-  {maxZoom:16,indexMaxZoom:16,indexMaxPoints:0,tolerance:1,buffer:64})]));
+  {maxZoom:16,indexMaxZoom:regional ? firstZoom : 16,indexMaxPoints:0,tolerance:1,buffer:64})]));
 const coordinates = new Map();
 for (const index of Object.values(indexes)) for (const tile of index.tileCoords) {
-  if (tile.z >= 11) coordinates.set(zxyToTileId(tile.z,tile.x,tile.y),tile);
+  if (tile.z >= firstZoom) coordinates.set(zxyToTileId(tile.z,tile.x,tile.y),tile);
 }
-let offset = 0;
 const tiles = [];
-for (const [id,{z,x,y}] of [...coordinates].sort(([a],[b]) => a-b)) {
+function encode(z, x, y) {
   const layers = {};
+  let hasPoints = false;
   for (const [layer,index] of Object.entries(indexes)) {
-    if (z < minZoom[layer]) continue;
+    if (!regional && z < minZoom[layer]) continue;
     const tile = index.getTile(z,x,y);
-    if (tile?.features.length) layers[layer] = tile;
+    if (tile?.numPoints > 0) hasPoints = true;
+    if (z >= minZoom[layer] && tile?.features.length) layers[layer] = tile;
   }
-  if (!Object.keys(layers).length) continue;
-  const bytes = gzipSync(fromGeojsonVt(layers,{version:2}));
-  tiles.push({id,bytes,offset}); offset += bytes.length;
+  if (Object.keys(layers).length) {
+    const bytes = gzipSync(fromGeojsonVt(layers,{version:2}));
+    tiles.push({id:zxyToTileId(z,x,y),bytes});
+  }
+  if (regional) {
+    if (hasPoints && z < 16) {
+      for (let dy=0;dy<2;dy++) for (let dx=0;dx<2;dx++) encode(z+1,x*2+dx,y*2+dy);
+    }
+    // geojson-vt 4.0.2 retains visited tiles. Release a completed subtree once
+    // its descendants have been encoded; its siblings keep their own sources.
+    const tileKey = ((2**z * y + x) * 32) + z;
+    for (const index of Object.values(indexes)) delete index.tiles[tileKey];
+  }
 }
+for (const {z,x,y} of coordinates.values()) encode(z,x,y);
+tiles.sort((a,b) => a.id-b.id);
+let offset = 0;
+for (const tile of tiles) { tile.offset = offset; offset += tile.bytes.length; }
 if (!tiles.length) throw Error('Empty pilot archive');
 function directory(entries) {
   const out=[];

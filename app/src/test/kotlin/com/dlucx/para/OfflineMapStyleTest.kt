@@ -18,13 +18,19 @@ class OfflineMapStyleTest {
             "#CDD7D6", "#99C8DE", "#875000", "#B4232B", "#EFF2F9", "#E8ECF2",
             listOf(DetailMapPack("pilot", "pmtiles://file:///pilot.pmtiles", PilotBoundsJson),
                 DetailMapPack("tagum-north", "pmtiles://file:///tagum-north.pmtiles",
-                    """{"type":"Polygon","coordinates":[[[125.51,7.48],[125.89,7.48],[125.89,7.72],[125.51,7.72],[125.51,7.48]]]}""")),
+                    """{"type":"Polygon","coordinates":[[[125.51,7.48],[125.89,7.48],[125.89,7.72],[125.51,7.72],[125.51,7.48]]]}"""),
+                DetailMapPack("region-xi", "pmtiles://file:///region-xi.pmtiles",
+                    """{"type":"Polygon","coordinates":[[[125,6],[126,6],[126,8],[125,8],[125,6]],[[125.51,6.99],[125.51,7.48],[125.89,7.48],[125.89,6.99],[125.51,6.99]]]}""",
+                    rectangular = false)),
             dark)
         val style = JsonParser.parseString(json).asJsonObject
         val layers = style.getAsJsonArray("layers").map { it.asJsonObject }
         val ids = layers.map { it.get("id").asString }
         assertEquals("Duplicate IDs break native styles", ids.size, ids.toSet().size)
         val sources = style.getAsJsonObject("sources").keySet()
+        val regionRings = style.getAsJsonObject("sources").getAsJsonObject("region-xi-bounds")
+            .getAsJsonObject("data").getAsJsonObject("geometry").getAsJsonArray("coordinates")
+        assertEquals("The regional background must leave the pilot hole uncovered", 2, regionRings.size())
         layers.filter { it.has("source") }.forEach { assertTrue("Unknown source on ${it.get("id")}", it.get("source").asString in sources) }
         assertTrue("Map must remain local", style.get("glyphs").asString.startsWith("asset://"))
         for (id in listOf("national-labels", "pilot-stop-labels")) {

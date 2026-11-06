@@ -45,6 +45,15 @@ def package(pack_id, detail, search, output, version, base):
         ).fetchone()
         if db.execute('PRAGMA integrity_check').fetchone()[0] != 'ok' or count != search_metadata['places'] or outside:
             raise ValueError(f'Invalid search database or coverage for {pack_id}')
+        if 'coverage' in metadata:
+            from shapely import prepare
+            from shapely.geometry import Point, shape
+            coverage = shape(metadata['coverage'])
+            if not coverage.is_valid or coverage.bounds != (west, south, east, north):
+                raise ValueError(f'Invalid region geometry for {pack_id}')
+            prepare(coverage)
+            if any(not coverage.covers(Point(lon, lat)) for lon, lat in db.execute('SELECT longitude, latitude FROM places')):
+                raise ValueError(f'Search result outside exact coverage for {pack_id}')
     entrances = (detail / 'entrances.json').read_bytes()
     if len(json.loads(entrances)) != metadata['counts']['associated_entrances']:
         raise ValueError(f'Invalid entrance count for {pack_id}')
@@ -87,6 +96,7 @@ def main():
     parser.add_argument('--version', required=True)
     parser.add_argument('--base-url', required=True)
     parser.add_argument('--pack', nargs=3, metavar=('ID', 'DETAIL_DIR', 'SEARCH_DIR'), action='append', required=True)
+    parser.add_argument('--previous-catalog', type=Path)
     args = parser.parse_args()
     base = args.base_url.rstrip('/')
     url = urlsplit(base)
@@ -96,10 +106,17 @@ def main():
     if not all(re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', item) for item in [args.version, *ids]) or len(set(ids)) != len(ids):
         parser.error('Use unique lowercase hyphenated IDs and version')
     args.output.mkdir(parents=True, exist_ok=True)
-    packs = [package(pack_id, Path(detail), Path(search), args.output, args.version, base)
-             for pack_id, detail, search in sorted(args.pack)]
-    (args.output / 'catalog.json').write_text(json.dumps(dict(schema=1, packs=packs), indent=2) + '\n', encoding='utf8')
-    for pack in packs:
+    new_packs = [package(pack_id, Path(detail), Path(search), args.output, args.version, base)
+                 for pack_id, detail, search in sorted(args.pack)]
+    packs = {}
+    if args.previous_catalog:
+        previous = json.loads(args.previous_catalog.read_text(encoding='utf8'))
+        if previous['schema'] != 1:
+            parser.error('Unsupported previous catalog schema')
+        packs.update((item['id'], item) for item in previous['packs'])
+    packs.update((item['id'], item) for item in new_packs)
+    (args.output / 'catalog.json').write_text(json.dumps(dict(schema=1, packs=list(packs.values())), indent=2) + '\n', encoding='utf8')
+    for pack in new_packs:
         print(f"{pack['id']}: {pack['bytes']:,} bytes, {pack['tiles']:,} tiles, {pack['places']:,} places")
 
 

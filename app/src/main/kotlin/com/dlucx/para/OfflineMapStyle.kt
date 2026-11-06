@@ -8,7 +8,8 @@ internal fun styleJson(
     water: String, approach: String, arrival: String, land: String, landAlternate: String,
     detailPacks: List<DetailMapPack>, dark: Boolean,
 ): String {
-    val outsideDetail = detailPacks.joinToString("") { """["!",["within",${it.boundsJson}]],""" }
+    val outsideDetail = detailPacks.filter(DetailMapPack::rectangular)
+        .joinToString("") { """["!",["within",${it.boundsJson}]],""" }
     fun line(id: String, source: String, kind: String, color: String, width: Double, dash: Boolean = false): String {
         val sourceLayer = if (source == "corridor") ""","source-layer":"lines"""" else ""
         val dashPaint = if (dash) ""","line-dasharray":[2,2]""" else ""
@@ -77,7 +78,8 @@ internal fun styleJson(
             "paint":{"fill-color":"${if (dark) "#2B302D" else "#F7F5ED"}"}}"""
     } + detailPacks.flatMap { pilotAreaLayers(dark, it.id) } +
         streetLayers(listOf("water" to water, "rail" to outline)) +
-        detailPacks.flatMap { pilotRoadLayers(dark, it.id) } + streetLabels + listOf(
+        // Regional detail uses the nationwide street labels so each name is drawn once.
+        detailPacks.flatMap { pilotRoadLayers(dark, it.id, showLabels = it.rectangular) } + streetLabels + listOf(
         line("coverage", Overlay, "boundary", outline, 2.0, dash = true),
         line("track", Overlay, "track", primary, 3.5),
         line("approach", Overlay, "approach", approach, 2.0, dash = true),

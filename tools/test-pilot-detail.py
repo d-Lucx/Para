@@ -32,4 +32,18 @@ with tempfile.TemporaryDirectory() as directory:
     adjacent_road = next(f for f in adjacent_features if f['properties']['source_id'] == road['properties']['source_id'])
     seam = shape(road['geometry']).intersection(shape(adjacent_road['geometry']))
     assert seam.geom_type == 'Point' and seam.x == 125.51, 'Adjacent road pieces must share their boundary endpoint'
+    region_file = Path(directory) / 'region.json'
+    region_file.write_text(json.dumps({'type': 'Feature', 'properties': {},
+        'geometry': {'type': 'Polygon', 'coordinates': [[[125.45, 6.95], [125.95, 6.95],
+            [125.95, 7.5], [125.45, 7.5], [125.45, 6.95]]]}}), encoding='utf8')
+    region_out = Path(directory) / 'region'
+    subprocess.run([sys.executable, str(root / 'extract-pilot-detail.py'), str(root / 'test-fixtures/pilot.osm'),
+        str(region_out), '--region-geometry', str(region_file), '--exclude-bounds',
+        '125.51', '6.99', '125.89', '7.48'], check=True)
+    region_manifest = json.loads((region_out / 'source.json').read_text())
+    coverage = shape(region_manifest['coverage'])
+    assert not coverage.covers(Point(125.605, 7.105)), 'Existing detail must be excluded from region coverage'
+    region_features = json.loads((region_out / 'pilot.geojson').read_text())['features']
+    region_road = next(f for f in region_features if f['properties']['source_id'] == road['properties']['source_id'])
+    assert shape(region_road['geometry']).intersection(shape(road['geometry'])).equals(seam)
 print('PASS pilot relation holes, duplicate handling, boundary entrances, border clipping, access tags and geographic layers')

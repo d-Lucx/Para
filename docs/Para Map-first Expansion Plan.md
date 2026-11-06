@@ -70,7 +70,10 @@ Acceptance fixtures should cover a reversed one-way, a forbidden turn, a grade-s
 - [x] Publish Davao West, Tagum North and the catalog as [versioned map data](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06). Download all assets anonymously and verify their hashes.
 - [x] On the Infinix, download Davao West from Settings and verify the installed PMTiles hash. Restart Para in airplane mode with Wi-Fi off, search for Mintal Public Market and verify downloaded building, water and path detail.
 - [ ] Verify shared boundaries on device when downloaded pack loading is available.
-- [ ] Finish device verification for cancellation, disk errors, version changes and boundary coverage. Expand detailed coverage beyond the first two published areas.
+- [x] Build and validate the remaining Region XI coverage. Its polygon and the three existing detail packs together cover Para's regional outline.
+- [x] Publish the 31.6 MB [Region XI pack and merged catalog](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06-rxi). Verify both files through anonymous download.
+- [x] Download Region XI from Settings on the Infinix and verify the installed archive hash. Restart in airplane mode with Wi-Fi off and verify building and path detail in Digos and Mati.
+- [ ] Finish device verification for cancellation, disk errors, version changes and boundary coverage. Continue detailed coverage region by region.
 - [ ] Verify an offline driving graph and route preview on the pilot and a cross-pack fixture. Record measured startup, frame cadence, search, disk and package-size changes before enabling broad rollout.
 
 ## Revised Stitch drafts

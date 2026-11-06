@@ -9,6 +9,7 @@ from collections import Counter
 from pathlib import Path
 
 import osmium
+from shapely import prepare
 from shapely.geometry import box, mapping, shape, Point
 from shapely.strtree import STRtree
 
@@ -18,13 +19,35 @@ parser.add_argument('output', type=Path)
 parser.add_argument('--bounds', type=float, nargs=4, metavar=('WEST', 'SOUTH', 'EAST', 'NORTH'),
     default=[125.51, 6.99, 125.89, 7.48])
 parser.add_argument('--name', default='Tagum–Davao pilot detail')
+parser.add_argument('--region-geometry', type=Path, help='Clip to the polygon in this GeoJSON feature')
+parser.add_argument('--exclude-bounds', type=float, nargs=4, action='append', default=[],
+    metavar=('WEST', 'SOUTH', 'EAST', 'NORTH'))
+parser.add_argument('--coverage-only', action='store_true', help='Write coverage for a matching search build and exit')
 args = parser.parse_args()
 source, output, bounds = args.source, args.output, args.bounds
+coverage = None
+if args.region_geometry:
+    coverage = shape(json.loads(args.region_geometry.read_text(encoding='utf8'))['geometry'])
+    if not coverage.is_valid:
+        parser.error('Region geometry must be valid')
+    for excluded in args.exclude_bounds:
+        coverage = coverage.difference(box(*excluded))
+    if coverage.is_empty or coverage.geom_type not in ('Polygon', 'MultiPolygon'):
+        parser.error('Region coverage must be a nonempty polygon')
+    bounds = list(coverage.bounds)
+elif args.exclude_bounds:
+    parser.error('--exclude-bounds requires --region-geometry')
 west, south, east, north = bounds
 if not (-180 <= west < east <= 180 and -85 <= south < north <= 85):
     parser.error('bounds must be west south east north in increasing order')
 output.mkdir(parents=True, exist_ok=True)
-pilot = box(*bounds)
+if args.coverage_only:
+    if coverage is None:
+        parser.error('--coverage-only requires --region-geometry')
+    (output / 'source.json').write_text(json.dumps(dict(bounds=bounds, coverage=mapping(coverage))), encoding='utf8')
+    raise SystemExit(0)
+pilot = coverage if coverage is not None else box(*bounds)
+prepare(pilot)
 factory = osmium.geom.GeoJSONFactory()
 features, entrances, landmarks = [], [], []
 counts = Counter()
@@ -81,7 +104,7 @@ class Extract(osmium.SimpleHandler):
         except (RuntimeError, ValueError):
             counts['invalid_lines'] += 1
             return
-        if not geometry.intersects(pilot):
+        if not pilot.intersects(geometry):
             return
         layer = 'paths' if highway in ('footway', 'path', 'steps', 'pedestrian') else 'road-detail'
         features.append(feature(layer, f'osm:w/{way.id}', way.tags, geometry.intersection(pilot),
@@ -100,7 +123,7 @@ class Extract(osmium.SimpleHandler):
             if not geometry.is_valid or geometry.is_empty:
                 counts['invalid_areas'] += 1
                 return
-            if not geometry.intersects(pilot):
+            if not pilot.intersects(geometry):
                 return
             clipped = geometry.intersection(pilot)
             if clipped.geom_type not in ('Polygon', 'MultiPolygon') or clipped.area == 0:
@@ -139,5 +162,7 @@ counts['associated_entrances'] = len(associated)
 with source.open('rb') as source_file:
     source_hash = hashlib.file_digest(source_file, 'sha256').hexdigest()
 manifest = dict(name=args.name, bounds=bounds, source_sha256=source_hash, counts=dict(counts))
+if coverage is not None:
+    manifest['coverage'] = mapping(coverage)
 (output / 'source.json').write_text(json.dumps(manifest, indent=2), encoding='utf8')
 print(json.dumps(manifest), flush=True)

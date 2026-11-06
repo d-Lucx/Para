@@ -67,3 +67,11 @@ Build its companion search asset by passing the same `--bounds` to `tools/build-
 Run `tools/package-detail-packs.py` with an output directory, `--version YYYY-MM-DD`, the corresponding GitHub release download URL in `--base-url`, and one `--pack ID DETAIL_DIR SEARCH_DIR` argument per pack. Run independent PMTiles decoding before packaging. The packager verifies the map and search hashes, SQLite integrity, bounds and entrance count and emits versioned ZIPs plus `catalog.json`.
 
 Publish the ZIPs and catalog in a map-data release. Download them anonymously and verify the catalog checksums before copying the same catalog into `app/src/main/assets/detail-catalog.json`. Para uses this bundled catalog to offer a download at detail zoom or in Settings. It requests the selected archive by URL after confirmation and verifies it before publishing the files together. The app can render installed geometry and use its entrance records offline. The existing nationwide search catalog continues to cover these same source snapshots.
+
+## Region-by-region rollout
+
+Start with Region XI. Pass `--region-geometry app/src/main/assets/regions/1100000000.geojson` to the detail extractor and subtract the three existing detail rectangles with repeated `--exclude-bounds WEST SOUTH EAST NORTH`. Use the same source snapshot for the adjoining areas. The emitted manifest contains the exact remaining polygon, which Para uses for the background fill, and the bounding rectangle used by the pack catalog. The boundary is Para's simplified regional outline.
+
+Use `--coverage-manifest <source.json>` for the matching place index. `--coverage-only` on the extractor can write that coverage before the full geometry pass. Package with `--previous-catalog` to preserve the existing download URLs in a new release catalog. The ZIP publisher independently checks that every indexed place is within the exact coverage.
+
+The Region XI remainder archive contains 37,018 verified tiles, 189,031 building areas, 540 water features, 3,036 land-use areas, 9,025 paths, and 3,508 indexed places. The ZIP is 31,562,839 bytes. The regional tile writer releases completed subtrees to reduce memory usage. It reproduced the existing Davao West PMTiles byte-for-byte in a comparison build.
