@@ -36,6 +36,8 @@ The 18 regional packs share the pilot's road palette and show category icons, mo
 
 Zoom into Davao Region or open **Settings → Detailed offline maps** to install **Region XI - Davao Region**. One 41.8 MB download contains Davao West, Tagum North, and the rest of the region beyond the bundled Tagum–Davao starter map. The [Region XI map-data release](https://github.com/d-Lucx/Para/releases/tag/map-data-2026-11-06-rxi-combined) includes the ZIP and its checksummed catalog.
 
+The combined download was installed over the earlier packs on the Infinix X6852. The installed hash matched the build, and building detail rendered in Mintal, New Corella, Digos, and Mati after restarting in airplane mode with Wi-Fi off. A regional view confirmed removal of the old Tagum–Davao rectangle.
+
 ## Build and verify
 
 Use JDK 17, Android SDK Platform 37, Android platform-tools, and the repository's Gradle wrapper (Gradle 9.6.0). Android Studio can install the SDK components. The app supports Android 8.0 / API 26 and newer.
@@ -61,7 +63,7 @@ Install on a connected, USB-debugging-enabled device:
 & "$env:LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" -d install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The debug APK is at `app/build/outputs/apk/debug/app-debug.apk`; lint reports are under `app/build/reports/`. Current validation: nine unit tests pass (seven trip/deadline tests and two light/dark style integrity tests); lint has 0 errors, 25 warnings, and 1 hint. The debug APK and unsigned release bundle build; the APK passes 16 KB native-library ZIP alignment checking. Builds and unit tests do not replace the [physical-device verification guide](<docs/Para Device Verification Guide.md>). Record new results in the [acceptance checklist](<docs/Para v1 Acceptance Checklist.md>).
+The debug APK is at `app/build/outputs/apk/debug/app-debug.apk`. Reports are under `app/build/reports/`. The combined Davao build passed nine unit tests and debug assembly. Lint reported 0 errors, 30 warnings, and 2 hints. Earlier builds also verified unsigned bundle assembly and 16 KB native-library APK alignment. Use the [physical-device verification guide](<docs/Para Device Verification Guide.md>) and record results in the [acceptance checklist](<docs/Para v1 Acceptance Checklist.md>).
 
 ## Repository layout
 
