@@ -3,6 +3,7 @@ package com.dlucx.para
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PointF
 import android.graphics.RectF
 import android.location.Location
@@ -59,6 +60,7 @@ import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
+import org.maplibre.geojson.Polygon
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
@@ -91,6 +93,10 @@ internal fun CorridorMap(
     region: MapRegion? = null,
     focusSelection: Boolean = false,
     snapToLandmarks: Boolean = true,
+    homePosition: HomePosition? = null,
+    recenterRequested: Boolean = false,
+    onRecenter: (() -> Unit)? = null,
+    onRecenterComplete: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val largeText = LocalDensity.current.fontScale > 1.3f
@@ -258,6 +264,7 @@ internal fun CorridorMap(
             if (context.isMapBenchmark()) benchmark = MapBenchmark(view, nativeMap)
             nativeMap.setStyle(Style.Builder().fromJson(mapStyle)) { loaded ->
                 if (!active) return@setStyle
+                loaded.addImage("para-heading-arrow", headingArrow(colors.onPrimary.toArgb()))
                 val labels = context.assets.open("tagum-davao-place-labels.json")
                     .bufferedReader().use { JSONArray(it.readText()) }
                 for (index in 0 until labels.length()) {
@@ -292,8 +299,33 @@ internal fun CorridorMap(
         style?.getSourceAs<GeoJsonSource>(Overlay)
             ?.setGeoJson(overlay(selectedPoint, approachRadiusMeters, arrivalRadiusMeters, recordedSegments))
     }
+    LaunchedEffect(style, homePosition) {
+        val features = homePosition?.let { position ->
+            val ring = (0..32).map { ringPoint(position.point, position.accuracyMeters, it * PI / 16) }
+            listOf(
+                Feature.fromGeometry(Polygon.fromLngLats(listOf(ring.dropLast(1) + ring.first())))
+                    .apply { addStringProperty("kind", "accuracy") },
+                Feature.fromGeometry(position.point.asPoint()).apply {
+                    addStringProperty("kind", "position")
+                    position.heading?.let { addNumberProperty("heading", it) }
+                },
+            )
+        }.orEmpty()
+        style?.getSourceAs<GeoJsonSource>(PositionOverlay)?.setGeoJson(FeatureCollection.fromFeatures(features))
+    }
+    LaunchedEffect(map, recenterRequested, homePosition?.point) {
+        val nativeMap = map ?: return@LaunchedEffect
+        val point = homePosition?.point ?: return@LaunchedEffect
+        if (recenterRequested) {
+            nativeMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                LatLng(point.latitude, point.longitude), maxOf(15.0, nativeMap.cameraPosition.zoom),
+            ))
+            onRecenterComplete()
+        }
+    }
     LaunchedEffect(map, region) {
         val nativeMap = map ?: return@LaunchedEffect
+        if (recenterRequested && homePosition != null) return@LaunchedEffect
         view.post {
             if (view.isAttachedToWindow && view.width > 0 && view.height > 0) {
                 nativeMap.moveCamera(CameraUpdateFactory.newLatLngBounds(region?.bounds ?: regionalMaps.bounds, 24))
@@ -334,6 +366,11 @@ internal fun CorridorMap(
     Box(modifier) {
         AndroidView(factory = { view }, modifier = Modifier.fillMaxSize())
         Column(Modifier.align(Alignment.TopEnd).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (onRecenter != null) {
+                OutlinedButton(onClick = onRecenter, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Locate", Modifier.semantics { contentDescription = "Center on current location" })
+                }
+            }
             OutlinedButton(onClick = { map?.animateCamera(CameraUpdateFactory.zoomIn()) },
                 modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp)) { Text("+", Modifier.semantics { contentDescription = "Zoom in" }) }
             OutlinedButton(onClick = { map?.animateCamera(CameraUpdateFactory.zoomOut()) },
@@ -354,6 +391,19 @@ internal fun CorridorMap(
             )
         }
     }
+}
+
+private fun headingArrow(color: Int): Bitmap {
+    val image = Bitmap.createBitmap(18, 18, Bitmap.Config.ARGB_8888)
+    val arrow = Path().apply {
+        moveTo(9f, 2f)
+        lineTo(15f, 15f)
+        lineTo(9f, 12f)
+        lineTo(3f, 15f)
+        close()
+    }
+    Canvas(image).drawPath(arrow, Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color })
+    return image
 }
 
 private fun labelBitmap(label: String, color: Int, background: Int): Bitmap {

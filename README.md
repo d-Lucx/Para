@@ -28,6 +28,8 @@ First use prepares 183.5 MiB of local map and search files. If preparation fails
 
 Home opens to the bundled map. Tap a landmark or drop a pin, then choose **Set arrival alarm** to confirm the stop and configure alert zones. Shared nationwide styling, area downloads and offline driving routes are tracked in the [expansion plan](<docs/Para Map-first Expansion Plan.md>).
 
+Tap **Locate** to show your GPS position and center the map. Para requests precise location if needed and shows a heading arrow when the compass or GPS travel direction is reliable.
+
 ## Build and verify
 
 Use JDK 17, Android SDK Platform 37, Android platform-tools, and the repository's Gradle wrapper (Gradle 9.6.0). Android Studio can install the SDK components. The app supports Android 8.0 / API 26 and newer.

@@ -1,6 +1,7 @@
 package com.dlucx.para
 
 internal const val Overlay = "para-overlay"
+internal const val PositionOverlay = "para-position"
 
 internal fun styleJson(
     archiveUrl: String, streetPacks: List<StreetPack>, background: String, primary: String, outline: String, minor: String,
@@ -76,6 +77,13 @@ internal fun styleJson(
             "layout":{"icon-image":["get","name"],"icon-size":0.65,"icon-anchor":"bottom-left"}}""",
         namedLayer("national", false, 6.5, primary, background),
         namedLayer("pilot-stop", true, 9.0, primary, background),
+        """{"id":"position-accuracy","type":"fill","source":"$PositionOverlay","filter":["==","kind","accuracy"],
+            "paint":{"fill-color":"$primary","fill-opacity":0.18}}""",
+        """{"id":"position-dot","type":"circle","source":"$PositionOverlay","filter":["==","kind","position"],
+            "paint":{"circle-color":"$primary","circle-radius":10,"circle-stroke-color":"$background","circle-stroke-width":2}}""",
+        """{"id":"position-heading","type":"symbol","source":"$PositionOverlay","filter":["has","heading"],
+            "layout":{"icon-image":"para-heading-arrow","icon-rotate":["get","heading"],"icon-rotation-alignment":"map",
+                "icon-allow-overlap":true,"icon-ignore-placement":true}}""",
     )
     val streetSources = streetPacks.joinToString(",") { """"streets-${it.id}":{"type":"vector","url":"${it.url}"}""" }
     return """{"version":8,"glyphs":"asset://glyphs/{fontstack}/{range}.pbf","sources":{
@@ -86,6 +94,7 @@ internal fun styleJson(
         "regions":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}},
         "region-names":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}},
         "named-places":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}},
+        "$PositionOverlay":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}},
         "$Overlay":{"type":"geojson","data":{"type":"FeatureCollection","features":[]}}
         },"layers":[""" + layers.joinToString(",") + "]}"
 }

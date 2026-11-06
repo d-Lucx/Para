@@ -79,6 +79,9 @@ The [map-first expansion plan](<Para Map-first Expansion Plan.md>) tracks the ap
 - [x] Open Home to the offline map. A landmark or custom pin opens the existing confirmation flow through **Set arrival alarm**. Search, coordinate entry and saved destinations remain available.
 - [x] Infinix X6852, debug build `ff5c630`. Open the nationwide map, reject a tap outside coverage, confirm a custom pin through alarm setup, retain the pin on Back, and expand saved destinations. Search for Polyclinic Davao and verify both mapped entrances appear.
 - [ ] Verify a landmark tap directly from Home, coordinate entry, saved destination actions, large text and TalkBack on the map-first build.
+- [x] Add **Locate** to Home. With precise location permission it requests a foreground GPS fix and recenters once. The position shows its accuracy and uses an arrow when a reliable compass or travel bearing is available.
+- [x] On the Infinix, **Locate** showed **Waiting for GPS** while the map stayed visible. After switching to Settings and back, Home cleared the request. No usable fix arrived during the smoke test.
+- [ ] Verify live recenter, heading, loss of fix and permission denial on device.
 
 - [x] Record the map review decisions and collect project guides in `docs/`, with a root README and documentation index.
 - [x] Locate the existing Para Stitch project, verify the cached map-source SHA-256 against its notice, and record the unchanged pack/search baseline in the [pilot map design review](<Para Pilot Map Design Review.md>). ADB detects the Infinix; no new app/device acceptance check is implied.

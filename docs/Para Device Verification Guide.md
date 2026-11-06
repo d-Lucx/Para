@@ -71,3 +71,10 @@ Use these results to update the open device verification entries in the acceptan
 3. Go back and try a mapped landmark with a known entrance. Verify that the confirmation shows the landmark name and the available entrance. Go back again and check that Home retains the selected pin.
 4. Use **Search places or enter coordinates** and confirm that both the search field and **Enter destination coordinates** are available. Expand **Saved destinations** and check the saved entries and actions.
 5. Repeat with large text and TalkBack. Use search or coordinates to select a destination without a map gesture.
+
+## 7. Current location on Home
+
+1. On **Map**, tap **Locate**. If prompted, allow precise location while using Para. Check for **Waiting for GPS** until a usable fix arrives. Try outdoors with a clear view of the sky.
+2. Confirm that Para centers once on the location dot. Zoom in to see the accuracy area. Pan away, confirm the map stays where you moved it, then tap **Locate** again.
+3. With the phone roughly flat, turn it and check that the arrow tracks the top of the screen when the compass reports good accuracy. With unavailable heading and no reliable GPS travel direction, expect a dot.
+4. Leave Home and check that Para's foreground location access ends. Repeat with location permission denied and verify that map browsing and pin selection are still available.

@@ -52,7 +52,8 @@ Acceptance fixtures should cover a reversed one-way, a forbidden turn, a grade-s
 - [x] Implement map-first Home with the bundled map, a destination pin and handoff to the existing confirmation and alarm setup screens.
 - [x] Smoke-test the Home custom-pin handoff, landmark search and saved destinations disclosure on the Infinix.
 - [ ] Finish the [device verification checklist](<Para v1 Acceptance Checklist.md>), including large text and TalkBack.
-- [ ] Add the foreground position marker and recenter control.
+- [x] Add the foreground position marker and recenter control.
+- [ ] Verify a live fix, one-shot recenter, heading and permission fallback on a phone.
 - [ ] Extend the source schema and deliver the shared style with category icons, one-way arrows, traffic signals and richer road names. Validate one pilot pack and an adjacent pack before the national rebuild.
 - [ ] Implement the area catalog and downloader, then verify cancellation, disk errors, integrity, version changes, boundary coverage and offline reopen.
 - [ ] Verify an offline driving graph and route preview on the pilot and a cross-pack fixture. Record measured startup, frame cadence, search, disk and package-size changes before enabling broad rollout.

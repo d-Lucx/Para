@@ -1,9 +1,13 @@
 package com.dlucx.para
 
+import android.Manifest
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,6 +60,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -330,6 +335,17 @@ internal fun ParaApp(
                 when (page) {
                     Page.Home -> {
                         var outsideCoverage by remember { mutableStateOf(false) }
+                        var locating by remember { mutableStateOf(false) }
+                        var showLocationHelp by remember { mutableStateOf(false) }
+                        val position = rememberHomePosition(locating)
+                        var recenterRequested by remember { mutableStateOf(false) }
+                        val locationPermission = rememberLauncherForActivityResult(
+                            ActivityResultContracts.RequestMultiplePermissions(),
+                        ) { grants ->
+                            locating = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true
+                            recenterRequested = locating
+                            showLocationHelp = !locating
+                        }
                         OutlinedButton(
                             onClick = {
                                 editingId = null
@@ -352,6 +368,22 @@ internal fun ParaApp(
                                 outsideCoverage = false
                             },
                             onOutsideCoverage = { outsideCoverage = true },
+                            homePosition = position,
+                            recenterRequested = recenterRequested,
+                            onRecenterComplete = { recenterRequested = false },
+                            onRecenter = {
+                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                                    PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    locating = true
+                                    recenterRequested = true
+                                    showLocationHelp = false
+                                } else {
+                                    locationPermission.launch(arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION,
+                                    ))
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth()
                                 .then(if (compactHeight) Modifier.height(260.dp) else Modifier.weight(1f)),
                         )
@@ -359,6 +391,12 @@ internal fun ParaApp(
                             Modifier.fillMaxWidth().heightIn(max = 208.dp).verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
+                            if (showLocationHelp) {
+                                Text("Allow precise location to show your position on the map.")
+                                TextButton(onClick = context::openParaAppSettings) { Text("Open Para app settings") }
+                            } else if (locating && position == null) {
+                                Text("Waiting for GPS", style = MaterialTheme.typography.bodySmall)
+                            }
                             if (outsideCoverage) {
                                 Text("Choose a point inside a bundled map area.", color = MaterialTheme.colorScheme.error)
                             }
