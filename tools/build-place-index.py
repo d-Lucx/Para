@@ -1,4 +1,5 @@
 """Build a read-only FTS4 catalog compatible with Android's bundled SQLite."""
+import gzip
 import hashlib
 import json
 import math
@@ -50,5 +51,7 @@ for query in ('manila*', 'cebu* south* bus* terminal*', 'san* pedro* cathedral*'
 count = db.execute('SELECT count(*) FROM places').fetchone()[0]
 db.close()
 data = path.read_bytes()
+(assets / 'place-search.sqlite.gz').write_bytes(gzip.compress(data, compresslevel=9, mtime=0))
+path.unlink()
 (assets / 'place-search.json').write_text(json.dumps(dict(bytes=len(data), sha256=hashlib.sha256(data).hexdigest(), places=count)))
 print(f'FTS4 catalog: {count:,} places, {len(data) / 1048576:.1f} MiB; integrity and search checks passed')

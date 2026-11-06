@@ -25,42 +25,58 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.delay
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 internal data class HomePosition(val point: CorridorPoint, val accuracyMeters: Int, val heading: Int?)
 
-private const val FixMaxAgeMillis = 15_000L
+internal data class HomeLocation(val position: HomePosition?, val deviceLocationEnabled: Boolean)
+
+private const val MapFixMaxAgeMillis = 30_000L
+private const val MapFixMaxAccuracyMeters = 1_000f
 
 @SuppressLint("MissingPermission")
 @Composable
-internal fun rememberHomePosition(enabled: Boolean): HomePosition? {
+internal fun rememberHomePosition(enabled: Boolean): HomeLocation {
     val context = LocalContext.current
     val view = LocalView.current
     val lifecycle = (LocalActivity.current as LifecycleOwner).lifecycle
-    var fix by remember { mutableStateOf<Location?>(null) }
+    val locations = remember(context) { context.getSystemService(LocationManager::class.java) }
+    var deviceLocationEnabled by remember(locations) { mutableStateOf(LocationManagerCompat.isLocationEnabled(locations)) }
+    var fixes by remember { mutableStateOf<Map<String, Location>>(emptyMap()) }
     var magneticHeading by remember { mutableStateOf<Int?>(null) }
-    LaunchedEffect(fix) {
-        val current = fix ?: return@LaunchedEffect
-        val age = SystemClock.elapsedRealtime() - current.elapsedRealtimeNanos / 1_000_000
-        delay((FixMaxAgeMillis - age).coerceAtLeast(0))
-        fix = null
+    fun isFresh(location: Location): Boolean {
+        val age = SystemClock.elapsedRealtime() - location.elapsedRealtimeNanos / 1_000_000
+        return age in 0 until MapFixMaxAgeMillis
+    }
+    LaunchedEffect(fixes) {
+        val oldest = fixes.values.minOfOrNull { it.elapsedRealtimeNanos / 1_000_000 } ?: return@LaunchedEffect
+        delay((oldest + MapFixMaxAgeMillis - SystemClock.elapsedRealtime()).coerceAtLeast(1))
+        fixes = fixes.filterValues(::isFresh)
     }
     DisposableEffect(enabled, lifecycle, view) {
-        val locations = context.getSystemService(LocationManager::class.java)
         val sensors = context.getSystemService(SensorManager::class.java)
         val rotation = sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
         val listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
-                val age = SystemClock.elapsedRealtime() - location.elapsedRealtimeNanos / 1_000_000
-                if (location.hasAccuracy() && location.accuracy in 1f..50f && age in 0 until FixMaxAgeMillis) {
-                    fix = location
+                if (location.hasAccuracy() && location.accuracy > 0 &&
+                    location.accuracy <= MapFixMaxAccuracyMeters && isFresh(location)
+                ) {
+                    fixes = fixes.filterValues(::isFresh) + (location.provider.orEmpty() to location)
                 }
             }
-            override fun onProviderDisabled(provider: String) { fix = null }
+            override fun onProviderEnabled(provider: String) {
+                deviceLocationEnabled = LocationManagerCompat.isLocationEnabled(locations)
+            }
+            override fun onProviderDisabled(provider: String) {
+                fixes = fixes - provider
+                deviceLocationEnabled = LocationManagerCompat.isLocationEnabled(locations)
+            }
         }
         val compass = object : SensorEventListener {
             private val matrix = FloatArray(9)
@@ -94,16 +110,23 @@ internal fun rememberHomePosition(enabled: Boolean): HomePosition? {
         fun stop() {
             locations.removeUpdates(listener)
             sensors.unregisterListener(compass)
-            fix = null
+            fixes = emptyMap()
             magneticHeading = null
         }
         val observer = object : DefaultLifecycleObserver {
             override fun onResume(owner: LifecycleOwner) {
+                deviceLocationEnabled = LocationManagerCompat.isLocationEnabled(locations)
                 if (!enabled || ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) !=
                     PackageManager.PERMISSION_GRANTED
                 ) return
                 try {
-                    locations.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2_000L, 0f, listener, Looper.getMainLooper())
+                    for (provider in listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)) {
+                        if (provider !in locations.allProviders) continue
+                        locations.requestLocationUpdates(provider, 2_000L, 0f, listener, Looper.getMainLooper())
+                        if (locations.isProviderEnabled(provider)) {
+                            locations.getLastKnownLocation(provider)?.let(listener::onLocationChanged)
+                        }
+                    }
                     rotation?.let { sensors.registerListener(compass, it, 200_000) }
                 } catch (_: SecurityException) {
                     stop()
@@ -119,12 +142,15 @@ internal fun rememberHomePosition(enabled: Boolean): HomePosition? {
             stop()
         }
     }
-    val current = fix ?: return null
+    val current = fixes.values.minByOrNull { it.accuracy } ?: return HomeLocation(null, deviceLocationEnabled)
     val declination = remember(current) {
         GeomagneticField(current.latitude.toFloat(), current.longitude.toFloat(), current.altitude.toFloat(), current.time).declination
     }
     val heading = magneticHeading?.let { Math.floorMod((it + declination).roundToInt(), 360) }
         ?: current.bearing.takeIf { current.hasBearingAccuracy() && current.bearingAccuracyDegrees in 0f..30f &&
             current.hasSpeed() && current.speed >= 2f }?.roundToInt()?.let { it % 360 }
-    return HomePosition(CorridorPoint(current.latitude, current.longitude), current.accuracy.roundToInt(), heading)
+    return HomeLocation(
+        HomePosition(CorridorPoint(current.latitude, current.longitude), ceil(current.accuracy).toInt(), heading),
+        deviceLocationEnabled,
+    )
 }

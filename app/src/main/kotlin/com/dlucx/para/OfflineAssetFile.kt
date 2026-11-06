@@ -8,6 +8,7 @@ import android.util.AtomicFile
 import android.util.Log
 import java.io.File
 import java.security.MessageDigest
+import java.util.zip.GZIPInputStream
 
 private val offlineAssetLock = Any()
 
@@ -20,15 +21,18 @@ internal fun Context.offlineAssetFile(asset: String, name: String, expected: Lon
         val output = atomic.startWrite()
         try {
             val digest = MessageDigest.getInstance("SHA-256")
-            assets.open(asset).use { input ->
+            assets.open(asset).use { raw ->
                 val buffer = ByteArray(64 * 1024)
                 var total = 0L
-                while (true) {
-                    val count = input.read(buffer)
-                    if (count < 0) break
-                    output.write(buffer, 0, count)
-                    digest.update(buffer, 0, count)
-                    total += count
+                (if (asset.endsWith(".gz")) GZIPInputStream(raw) else raw).use { input ->
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        check(total <= expected)
+                        output.write(buffer, 0, count)
+                        digest.update(buffer, 0, count)
+                    }
                 }
                 check(total == expected)
             }

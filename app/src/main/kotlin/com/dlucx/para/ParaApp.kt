@@ -1,8 +1,10 @@
 package com.dlucx.para
 
 import android.Manifest
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
@@ -337,7 +339,8 @@ internal fun ParaApp(
                         var outsideCoverage by remember { mutableStateOf(false) }
                         var locating by remember { mutableStateOf(false) }
                         var showLocationHelp by remember { mutableStateOf(false) }
-                        val position = rememberHomePosition(locating)
+                        val homeLocation = rememberHomePosition(locating)
+                        val position = homeLocation.position
                         var recenterRequested by remember { mutableStateOf(false) }
                         val locationPermission = rememberLauncherForActivityResult(
                             ActivityResultContracts.RequestMultiplePermissions(),
@@ -394,8 +397,15 @@ internal fun ParaApp(
                             if (showLocationHelp) {
                                 Text("Allow precise location to show your position on the map.")
                                 TextButton(onClick = context::openParaAppSettings) { Text("Open Para app settings") }
+                            } else if (locating && !homeLocation.deviceLocationEnabled) {
+                                Text("Device location is off.")
+                                TextButton(onClick = { context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }) {
+                                    Text("Open location settings")
+                                }
                             } else if (locating && position == null) {
-                                Text("Waiting for GPS", style = MaterialTheme.typography.bodySmall)
+                                Text("Waiting for location. Try moving near a window or outdoors.", style = MaterialTheme.typography.bodySmall)
+                            } else if (position != null && position.accuracyMeters > 50) {
+                                Text("Approximate location · ±${position.accuracyMeters} m", style = MaterialTheme.typography.bodySmall)
                             }
                             if (outsideCoverage) {
                                 Text("Choose a point inside a bundled map area.", color = MaterialTheme.colorScheme.error)

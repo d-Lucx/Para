@@ -28,9 +28,9 @@ First use prepares local map and search files. If preparation fails, use **Retry
 
 Home opens to the bundled map. Tap a landmark or drop a pin, then choose **Set arrival alarm** to confirm the stop and configure alert zones. Shared nationwide styling, area downloads and offline driving routes are tracked in the [expansion plan](<docs/Para Map-first Expansion Plan.md>).
 
-Tap **Locate** to show your GPS position and center the map. Para requests precise location if needed and shows a heading arrow when the compass or GPS travel direction is reliable.
+Tap **Locate** to show your position and center the map. Home can show a recent approximate location with an accuracy label while the trip alarm waits for a fresh, precise GPS fix. The heading arrow appears when the compass or GPS travel direction is reliable.
 
-The 18 regional packs share the pilot's road palette and show category icons, more road labels, and mapped one-way arrows and traffic signals at street zoom. The regional archives and search index together are 26.2 MiB larger than before. See the [regional build guide](<docs/Regional map build.md>).
+The 18 regional packs share the pilot's road palette and show category icons, more road labels, and mapped one-way arrows and traffic signals at street zoom. The offline search index is stored as a 23.8 MiB gzip asset and expands to 61.8 MiB on first use. See the [regional build guide](<docs/Regional map build.md>).
 
 ## Build and verify
 

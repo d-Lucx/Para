@@ -197,7 +197,7 @@ private fun GpsStatus(snapshot: TripSnapshot, color: Color) {
         "Device location is off" to "Turn on device location so Para can check when you arrive."
     } else when (snapshot.status) {
         TripStatus.WaitingForGps -> "Waiting for GPS" to
-            "Para will check your distance when it gets a usable fix."
+            "Para needs a fresh, precise GPS reading before it can check your distance or confirm arrival."
         TripStatus.Tracking -> "Tracking" to "Checking your distance to the destination."
         TripStatus.GpsSignalLost -> "GPS signal lost" to
             "Para will resume proximity checks when GPS returns."
